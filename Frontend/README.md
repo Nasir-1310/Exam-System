@@ -1,6 +1,3 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
 
 First, run the development server:
 
@@ -12,7 +9,143 @@ yarn dev
 pnpm dev
 # or
 bun dev
+
 ```
+
+Frontend File structrue:
+Frontend (Next.js + TypeScript + Tailwind CSS)
+bcs-exam-frontend/
+│
+├── public/
+│   ├── images/
+│   │   ├── logo.svg
+│   │   ├── hero/
+│   │   └── courses/
+│   ├── icons/
+│   └── favicon.ico
+│
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx                 # Root layout
+│   │   ├── page.tsx                   # Home page
+│   │   ├── globals.css                # Global styles
+│   │   ├── (auth)/
+│   │   │   ├── login/
+│   │   │   │   └── page.tsx
+│   │   │   ├── register/
+│   │   │   │   └── page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── courses/
+│   │   │   ├── page.tsx               # All courses
+│   │   │   ├── [id]/
+│   │   │   │   └── page.tsx           # Course details
+│   │   │   └── layout.tsx
+│   │   ├── bcs-course/
+│   │   │   └── page.tsx
+│   │   ├── bank-course/
+│   │   │   └── page.tsx
+│   │   ├── books/
+│   │   │   ├── page.tsx
+│   │   │   └── [id]/
+│   │   │       └── page.tsx
+│   │   ├── free-course/
+│   │   │   └── page.tsx
+│   │   ├── about/
+│   │   │   └── page.tsx
+│   │   ├── profile/
+│   │   │   ├── page.tsx
+│   │   │   └── settings/
+│   │   │       └── page.tsx
+│   │   └── dashboard/
+│   │       ├── page.tsx
+│   │       ├── my-courses/
+│   │       │   └── page.tsx
+│   │       └── progress/
+│   │           └── page.tsx
+│   │
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── MobileMenu.tsx
+│   │   ├── ui/
+│   │   │   ├── Button.tsx
+│   │   │   ├── Card.tsx
+│   │   │   ├── Input.tsx
+│   │   │   ├── Modal.tsx
+│   │   │   ├── Dropdown.tsx
+│   │   │   ├── Badge.tsx
+│   │   │   ├── Spinner.tsx
+│   │   │   └── Alert.tsx
+│   │   ├── course/
+│   │   │   ├── CourseCard.tsx
+│   │   │   ├── CourseGrid.tsx
+│   │   │   ├── CourseDetails.tsx
+│   │   │   ├── CourseFilter.tsx
+│   │   │   └── CourseProgress.tsx
+│   │   ├── exam/
+│   │   │   ├── ExamCard.tsx
+│   │   │   ├── ExamTimer.tsx
+│   │   │   ├── QuestionCard.tsx
+│   │   │   └── ResultCard.tsx
+│   │   ├── book/
+│   │   │   ├── BookCard.tsx
+│   │   │   └── BookReader.tsx
+│   │   └── common/
+│   │       ├── Hero.tsx
+│   │       ├── SearchBar.tsx
+│   │       ├── Pagination.tsx
+│   │       └── BreadcrumbNav.tsx
+│   │
+│   ├── lib/
+│   │   ├── api/
+│   │   │   ├── client.ts              # Axios/Fetch configuration
+│   │   │   ├── endpoints.ts           # API endpoints
+│   │   │   └── services/
+│   │   │       ├── authService.ts
+│   │   │       ├── courseService.ts
+│   │   │       ├── examService.ts
+│   │   │       └── userService.ts
+│   │   ├── utils/
+│   │   │   ├── helpers.ts
+│   │   │   ├── validators.ts
+│   │   │   ├── formatters.ts
+│   │   │   └── constants.ts
+│   │   └── hooks/
+│   │       ├── useAuth.ts
+│   │       ├── useCourses.ts
+│   │       ├── useExam.ts
+│   │       └── useDebounce.ts
+│   │
+│   ├── store/                          # State management (Zustand/Redux)
+│   │   ├── index.ts
+│   │   ├── slices/
+│   │   │   ├── authSlice.ts
+│   │   │   ├── courseSlice.ts
+│   │   │   └── examSlice.ts
+│   │   └── types.ts
+│   │
+│   ├── types/
+│   │   ├── index.ts
+│   │   ├── course.ts
+│   │   ├── user.ts
+│   │   ├── exam.ts
+│   │   └── api.ts
+│   │
+│   └── styles/
+│       └── themes.ts
+│
+├── .env.local                          # Environment variables
+├── .env.example
+├── .eslintrc.json
+├── .prettierrc
+├── .gitignore
+├── next.config.js
+├── tailwind.config.ts
+├── tsconfig.json
+├── package.json
+└── README.md
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
