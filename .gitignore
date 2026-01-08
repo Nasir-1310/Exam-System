@@ -1,0 +1,155 @@
+# ============================================
+# Root Level .gitignore for BCS Exam Project
+# ============================================
+
+# ==================== Frontend ====================
+
+# Next.js
+Frontend/.next/
+Frontend/out/
+Frontend/build/
+Frontend/dist/
+
+
+
+# Dependencies
+Frontend/node_modules/
+Frontend/.pnp
+Frontend/.pnp.js
+
+# Testing
+Frontend/coverage/
+Frontend/.nyc_output
+
+# Production
+Frontend/build/
+
+# Misc
+Frontend/.DS_Store
+Frontend/*.pem
+Frontend/.idea
+Frontend/.vscode
+Frontend/*.swp
+Frontend/*.swo
+Frontend/*~
+
+# Debug
+Frontend/npm-debug.log*
+Frontend/yarn-debug.log*
+Frontend/yarn-error.log*
+
+# Local env files
+Frontend/.env
+Frontend/.env*.local
+Frontend/.env.local
+Frontend/.env.development.local
+Frontend/.env.test.local
+Frontend/.env.production.local
+
+# Vercel
+Frontend/.vercel
+
+# Turbopack
+Frontend/.turbo
+
+
+# ==================== Backend ====================
+
+# Dependencies
+Backend/node_modules/
+Backend/venv/
+Backend/env/
+Backend/.venv/
+Backend/__pycache__/
+Backend/*.py[cod]
+Backend/*$py.class
+Backend/.Python
+
+# Flask/Django
+Backend/instance/
+Backend/.webassets-cache
+Backend/db.sqlite3
+Backend/db.sqlite3-journal
+
+# Environment variables
+Backend/.env
+Backend/.env.local
+Backend/.env.*.local
+
+# Logs
+Backend/*.log
+Backend/logs/
+Backend/npm-debug.log*
+Backend/yarn-debug.log*
+Backend/yarn-error.log*
+
+# Database
+Backend/*.db
+Backend/*.sqlite
+Backend/*.sqlite3
+
+# Uploads & Media
+Backend/uploads/
+Backend/media/
+Backend/static/collected/
+
+# IDE
+Backend/.idea/
+Backend/.vscode/
+Backend/*.swp
+Backend/*.swo
+Backend/*~
+
+# OS
+Backend/.DS_Store
+Backend/Thumbs.db
+
+# Test coverage
+Backend/htmlcov/
+Backend/.coverage
+Backend/.coverage.*
+Backend/coverage.xml
+Backend/*.cover
+Backend/.pytest_cache/
+
+# Build files
+Backend/build/
+Backend/dist/
+Backend/*.egg-info/
+
+
+# ==================== Global ====================
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Environment variables (root level)
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Package manager locks (optional - uncomment if you want to ignore)
+# Frontend/package-lock.json
+# Frontend/yarn.lock
+# Backend/requirements.txt
