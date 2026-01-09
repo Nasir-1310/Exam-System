@@ -11,9 +11,7 @@ from app.lib.config import settings
 from app.lib.db import get_db
 from app.models import User
 from pydantic import BaseModel
-
-class TokenData(BaseModel):
-    email: Optional[str] = None
+from app.schemas import TokenData
 
 
 # Support both argon2 (preferred) and bcrypt (for legacy support)
