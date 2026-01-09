@@ -1,0 +1,46 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from app.api import (
+    test_router,
+    auth_router,
+)
+
+import logging
+logging.getLogger('passlib').setLevel(logging.ERROR)
+
+
+app = FastAPI(
+    title="Taifulian MCQ API",
+    description="API for Taifulian MCQ Application",
+    version="1.0.0",
+    icon="🚀",
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(test_router)
+app.include_router(auth_router)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )
