@@ -20,7 +20,8 @@ export default function Navbar() {
     { label: 'ব্যাংক জব কোর্স', href: '/bank-course' },
     { label: 'বুক', href: '/books' },
     { label: 'ফ্রি কোর্স', href: '/free-course' },
-    { label: 'আমাদের সম্পর্কে', href: '/about' },
+    { label: 'পরিক্ষা', href: '/exam' },
+    // { label: 'আমাদের সম্পর্কে', href: '/about' },
   ];
 
   if (!mounted) {

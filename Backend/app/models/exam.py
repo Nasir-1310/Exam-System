@@ -6,7 +6,7 @@ class Exam(Base):
     __tablename__ = "Exam"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
-    description = Column(Text)
+    description = Column(Text)   
     start_time = Column(Date, nullable=False)
     duration_minutes = Column(Integer, nullable=False)
     mark = Column(DECIMAL, nullable=False)
