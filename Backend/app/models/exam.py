@@ -1,3 +1,7 @@
+from sqlalchemy import Column, Integer, String, Text, Date, DECIMAL, ForeignKey
+from sqlalchemy.orm import relationship
+from app.lib.db import Base
+
 class Exam(Base):
     __tablename__ = "Exam"
     id = Column(Integer, primary_key=True, index=True)

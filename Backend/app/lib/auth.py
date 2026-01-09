@@ -8,9 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.lib.config import settings
-from app.lib.database import get_db
-from app.models.models import User
-from app.schemas.schemas import TokenData
+from app.lib.db import get_db
+from app.models import User
+from pydantic import BaseModel
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
 
 # Support both argon2 (preferred) and bcrypt (for legacy support)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

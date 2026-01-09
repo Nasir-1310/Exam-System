@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    ALLOWED_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE"]
+    ALLOWED_HEADERS: List[str] = ["*", "Authorization"]
+    ALLOWED_CREDENTIALS: bool = True
     
     # Environment
     ENVIRONMENT: str = "development"
