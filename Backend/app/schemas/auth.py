@@ -5,8 +5,8 @@ from pydantic.networks import EmailStr
 
 class Token(BaseModel):
     access_token: str
-    token_type: str
-    expires_in: datetime
+    token_type: Optional[str] = "bearer"
+    expires_in: Optional[datetime]
 
 
 class TokenResponse(Token):

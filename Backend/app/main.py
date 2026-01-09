@@ -14,8 +14,8 @@ logging.getLogger('passlib').setLevel(logging.ERROR)
 
 
 app = FastAPI(
-    title="Taifulian MCQ API",
-    description="API for Taifulian MCQ Application",
+    title="BCS Exam System API",
+    description="API for BCS Exam System Application",
     version="1.0.0",
     icon="🚀",
 )

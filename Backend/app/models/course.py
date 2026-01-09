@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, DECIMAL, Text
 from sqlalchemy.orm import relationship
 from app.lib.db import Base
-from app.models import user_course
+from app.models import UserCourseRelation
 
 class Course(Base):
     __tablename__ = "Course"
@@ -11,4 +11,4 @@ class Course(Base):
     thumbnail = Column(Text, nullable=False)
 
     exams = relationship("Exam", back_populates="course")
-    courses = relationship("User", secondary=user_course, back_populates="courses") 
+    users = relationship("User", secondary=UserCourseRelation, back_populates="courses") 

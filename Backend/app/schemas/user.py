@@ -7,7 +7,7 @@ class UserBase(BaseModel):
     dob: Optional[date] = None
     email: Optional[EmailStr] = None
     last_login: Optional[date] = None
-    is_admin: Optional[date] = None
+    is_admin: Optional[bool] = None
 
 class UserCreate(UserBase):
     email: EmailStr

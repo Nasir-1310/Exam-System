@@ -5,10 +5,12 @@ from app.schemas import RegisterRequest
 from app.utils.hashing import get_password_hash
 
 async def get_user_by_email(db: AsyncSession, email: str):
-    return await db.execute(select(User).filter(User.email == email)).scalar_one_or_none()
+    result = await db.execute(select(User).filter(User.email == email))
+    return result.scalar_one_or_none()
 
 async def get_user_by_id(db: AsyncSession, id: int):
-    return await db.execute(select(User).filter(User.id == id)).scalar_one_or_none()
+    result = await db.execute(select(User).filter(User.id == id))
+    return result.scalar_one_or_none()
 
 
 async def create_user(db: AsyncSession, payload: RegisterRequest):

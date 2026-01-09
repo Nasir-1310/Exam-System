@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, DECIM
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from app.lib.db import Base
-from app.models import user_course
+from app.models import UserCourseRelation
 
 class User(Base):
     __tablename__ = "User"
@@ -15,4 +15,4 @@ class User(Base):
     is_admin = Column(Boolean, nullable=False, default=False)
 
     results = relationship("Result", back_populates="user")
-    user_courses = relationship("User", secondary=user_course, back_populates="users")
+    courses = relationship("Course", secondary=UserCourseRelation, back_populates="users")
