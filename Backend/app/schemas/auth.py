@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic.networks import EmailStr
 
 class Token(BaseModel):
-    access_token: str
+    token: str
     token_type: Optional[str] = "bearer"
     expires_in: Optional[datetime]
 
