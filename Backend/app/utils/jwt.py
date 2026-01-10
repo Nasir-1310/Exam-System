@@ -19,13 +19,13 @@ oauth2_scheme = OAuth2PasswordBearer(
     scheme_name="JWT",
 )
 
-def create_access_token(*, user_id: Union[int, str, UUID], role: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_token(*, user_id: Union[int, str, UUID], role: str, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = {
         "sub": str(user_id),
         "role": role,
         "iat": int(datetime.now(timezone.utc).timestamp()),
     }
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES, days=settings.ACCESS_TOKEN_EXPIRE_DAYS, hours=settings.ACCESS_TOKEN_EXPIRE_HOURS))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.token_EXPIRE_MINUTES, days=settings.TOKEN_EXPIRE_DAYS, hours=settings.TOKEN_EXPIRE_HOURS))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
