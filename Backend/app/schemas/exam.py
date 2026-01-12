@@ -50,3 +50,7 @@ class ExamUpdateRequest(BaseModel):
 	mark: float
 	minus_mark: float
 	course_id: int
+
+
+class MCQBulkRequest(BaseModel):
+	questions: str

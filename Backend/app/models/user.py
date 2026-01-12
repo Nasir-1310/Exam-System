@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from app.lib.db import Base
 from app.models import UserCourseRelation
+from app.models.enums import UserRole
 
 class User(Base):
     __tablename__ = "User"
@@ -13,6 +14,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     last_login = Column(Date)
     is_admin = Column(Boolean, nullable=False, default=False)
+    role = Column(UserRole, nullable=False, default=UserRole.USER)
 
     results = relationship("Result", back_populates="user")
     courses = relationship("Course", secondary=UserCourseRelation, back_populates="users")

@@ -6,7 +6,7 @@ from app.schemas.user import (
 )
 from app.schemas.exam import (
     ExamCreateRequest, ExamUpdateRequest, ExamResponse,
-    QuestionCreateRequest, QuestionResponse
+    QuestionCreateRequest, QuestionResponse, MCQBulkRequest
 )
 from app.schemas.result import (
     ResultResponse, ResultDetailedResponse,

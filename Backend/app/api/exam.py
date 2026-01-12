@@ -28,6 +28,11 @@ async def add_question_to_exam(exam_id: int, question: QuestionCreateRequest, db
 	res = await add_question_to_exam_service(exam_id, question, db)
 	return res
 
+@router.post("/{exam_id}/mcq-bulk")
+async def add_mcq_bulk_to_exam(exam_id: int, question_request: MCQBulkRequest, db: Session = Depends(get_db)):
+	res = await add_mcq_bulk_to_exam_service(exam_id, question_request, db)
+	return res
+
 
 @router.get("/{exam_id}", response_model=ExamResponse)
 async def get_exam(exam_id: int, db: Session = Depends(get_db)):
