@@ -27,8 +27,8 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login/docs")
 async def login_docs(db: AsyncSession = Depends(get_db), username: str = Form(), password: str = Form()):
-	user = await get_user_by_email(db, username)
 	try:
+		user = await get_user_by_email(db, username)
 		if not user or not verify_password(password, user.password_hash):
 			raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 		
@@ -37,7 +37,8 @@ async def login_docs(db: AsyncSession = Depends(get_db), username: str = Form(),
 		return {
 			"token": token, 
 			"token_type": "bearer",
-			"expires_in": expires_time
+			"expires_in": expires_time,
+			"user": user
 		}
 	except Exception as e:
 		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

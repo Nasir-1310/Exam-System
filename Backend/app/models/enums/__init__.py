@@ -1,1 +1,1 @@
-from app.models.enums.role import UserRole
+from app.models.enums.role import UserRoleSQL, UserRole

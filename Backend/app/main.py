@@ -8,6 +8,7 @@ from app.api import (
     test_router,
     auth_router,
     exam_router,
+    course_router,
 )
 
 import logging
@@ -33,6 +34,7 @@ app.add_middleware(
 app.include_router(test_router)
 app.include_router(auth_router)
 app.include_router(exam_router)
+app.include_router(course_router)
 
 if __name__ == "__main__":
     import uvicorn

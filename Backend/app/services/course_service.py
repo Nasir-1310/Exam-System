@@ -1,7 +1,7 @@
 from app.models import Course
 from app.schemas import (
-    CourseCreateRequest, 
-    CourseUpdateRequest
+    CourseCreate, 
+    CourseUpdate
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -12,7 +12,7 @@ async def get_all_courses_service(db: AsyncSession) -> List[Course]:
 	return await db.execute(select(Course))
 
 
-async def create_course_service(course: CourseCreateRequest, db: AsyncSession) -> Course:
+async def create_course_service(course: CourseCreate, db: AsyncSession) -> Course:
 	course = Course(**course.dict())
 	await db.add(course)
 	await db.commit()
@@ -23,7 +23,7 @@ async def get_course_service(course_id: int, db: AsyncSession) -> Course:
 	return await db.execute(select(Course).where(Course.id == course_id))
 
 
-async def update_course_service(course_id: int, course: CourseUpdateRequest, db: AsyncSession) -> Course:
+async def update_course_service(course_id: int, course: CourseUpdate, db: AsyncSession) -> Course:
 	course = await db.execute(select(Course).where(Course.id == course_id))
 	course.update(course.dict())
 	await db.commit()
