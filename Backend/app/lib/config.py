@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     # Application
     SECRET_KEY: str = "asd2e3pirhw9frweprfuwepiufwe_secret_key_for_jwt"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    ACCESS_TOKEN_EXPIRE_DAYS: int = 0
-    ACCESS_TOKEN_EXPIRE_HOURS: int = 0
+    TOKEN_EXPIRE_MINUTES: int = 60
+    TOKEN_EXPIRE_DAYS: int = 0
+    TOKEN_EXPIRE_HOURS: int = 0
     
     # Environment
     ENVIRONMENT: str = "development"
