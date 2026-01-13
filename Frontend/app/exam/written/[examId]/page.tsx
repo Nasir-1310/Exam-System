@@ -19,7 +19,6 @@ export default function WrittenExamTakingPage() {
   const exam = getWrittenExamById(examId);
   const questions = getWrittenQuestionsByExamId(examId);
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: WrittenAnswer }>({});
   const [showSubmitWarning, setShowSubmitWarning] = useState(false);
 
@@ -31,11 +30,9 @@ export default function WrittenExamTakingPage() {
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-
-  const handleImagesUpload = (files: File[]) => {
-    const currentAnswer = answers[currentQuestion.id] || {
-      question_id: currentQuestion.id,
+  const handleImagesUpload = (questionId: number, files: File[]) => {
+    const currentAnswer = answers[questionId] || {
+      question_id: questionId,
       image_files: [],
       image_urls: [],
     };
@@ -49,24 +46,12 @@ export default function WrittenExamTakingPage() {
 
     setAnswers({
       ...answers,
-      [currentQuestion.id]: {
-        question_id: currentQuestion.id,
+      [questionId]: {
+        question_id: questionId,
         image_files: newFiles,
         image_urls: newUrls,
       },
     });
-  };
-
-  const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
   };
 
   const submitExam = () => {
@@ -98,21 +83,24 @@ export default function WrittenExamTakingPage() {
 
   const answeredCount = Object.keys(answers).length;
 
-  // Memoize uploadedImages to prevent reference changes
-  const uploadedImages = useMemo(() => {
-    return answers[currentQuestion.id]?.image_urls || [];
-  }, [answers, currentQuestion.id]);
+  // Function to scroll to specific question
+  const scrollToQuestion = (index: number) => {
+    const element = document.getElementById(`written-question-${index}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 pt-20">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        {/* Header - Sticky */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6 sticky top-16 z-40">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
               <p className="text-sm text-gray-600">
-                Question {currentQuestionIndex + 1} of {questions.length}
+                Total Questions: {questions.length}
               </p>
             </div>
             <Timer
@@ -123,46 +111,41 @@ export default function WrittenExamTakingPage() {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Question Panel */}
-          <div className="lg:col-span-3">
-            <WrittenQuestionCard
-              questionNumber={currentQuestionIndex + 1}
-              content={currentQuestion.content}
-              marks={currentQuestion.marks}
-              onImagesUpload={handleImagesUpload}
-              uploadedImages={uploadedImages}
-            />
+          {/* All Questions Panel */}
+          <div className="lg:col-span-3 space-y-6">
+            {questions.map((question, index) => {
+              // Memoize uploaded images for each question
+              const uploadedImages = answers[question.id]?.image_urls || [];
 
-            <div className="flex justify-between items-center mt-4">
+              return (
+                <div key={question.id} id={`written-question-${index}`}>
+                  <WrittenQuestionCard
+                    questionNumber={index + 1}
+                    content={question.content}
+                    marks={question.marks}
+                    onImagesUpload={(files) =>
+                      handleImagesUpload(question.id, files)
+                    }
+                    uploadedImages={uploadedImages}
+                  />
+                </div>
+              );
+            })}
+
+            {/* Submit Button */}
+            <div className="flex justify-center mt-8">
               <button
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-                className="px-6 py-2 bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleSubmit}
+                className="px-8 py-3 bg-green-600 text-white font-medium text-lg rounded-lg hover:bg-green-700 shadow-lg"
               >
-                Previous
+                Submit Exam
               </button>
-
-              {currentQuestionIndex === questions.length - 1 ? (
-                <button
-                  onClick={handleSubmit}
-                  className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
-                >
-                  Submit Exam
-                </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              )}
             </div>
           </div>
 
           {/* Question Navigator */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4 sticky top-24">
+            <div className="bg-white rounded-lg shadow p-4 sticky top-44">
               <h3 className="font-semibold text-gray-900 mb-4">Questions</h3>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {questions.map((q, index) => {
@@ -172,12 +155,10 @@ export default function WrittenExamTakingPage() {
                   return (
                     <button
                       key={q.id}
-                      onClick={() => setCurrentQuestionIndex(index)}
+                      onClick={() => scrollToQuestion(index)}
                       className={`relative h-12 rounded-lg text-sm font-medium transition-colors ${
                         imageCount > 0
                           ? "bg-green-500 text-white hover:bg-green-600"
-                          : currentQuestionIndex === index
-                          ? "bg-blue-500 text-white"
                           : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                       }`}
                     >

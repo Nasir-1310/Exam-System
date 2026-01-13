@@ -15,7 +15,6 @@ export default function MCQExamTakingPage() {
   const exam = getExamById(examId);
   const questions = getQuestionsByExamId(examId);
 
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   const [showSubmitWarning, setShowSubmitWarning] = useState(false);
 
@@ -27,25 +26,11 @@ export default function MCQExamTakingPage() {
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
-
-  const handleAnswerSelect = (optionIndex: number) => {
+  const handleAnswerSelect = (questionId: number, optionIndex: number) => {
     setAnswers({
       ...answers,
-      [currentQuestion.id]: optionIndex,
+      [questionId]: optionIndex,
     });
-  };
-
-  const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1);
-    }
   };
 
   const submitExam = () => {
@@ -90,16 +75,24 @@ export default function MCQExamTakingPage() {
 
   const answeredCount = Object.keys(answers).length;
 
+  // Function to scroll to specific question
+  const scrollToQuestion = (index: number) => {
+    const element = document.getElementById(`question-${index}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 pt-20">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
+        {/* Header - Sticky */}
+        <div className="bg-white rounded-lg shadow p-4 mb-6 sticky top-16 z-40">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
               <p className="text-sm text-gray-600">
-                Question {currentQuestionIndex + 1} of {questions.length}
+                Total Questions: {questions.length}
               </p>
             </div>
             <Timer
@@ -110,57 +103,45 @@ export default function MCQExamTakingPage() {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Question Panel */}
-          <div className="lg:col-span-3">
-            <QuestionCard
-              questionNumber={currentQuestionIndex + 1}
-              content={currentQuestion.content}
-              options={currentQuestion.options}
-              selectedAnswer={answers[currentQuestion.id]}
-              onAnswerSelect={handleAnswerSelect}
-            />
+          {/* All Questions Panel */}
+          <div className="lg:col-span-3 space-y-6">
+            {questions.map((question, index) => (
+              <div key={question.id} id={`question-${index}`}>
+                <QuestionCard
+                  questionNumber={index + 1}
+                  content={question.content}
+                  options={question.options}
+                  selectedAnswer={answers[question.id]}
+                  onAnswerSelect={(optionIndex) =>
+                    handleAnswerSelect(question.id, optionIndex)
+                  }
+                />
+              </div>
+            ))}
 
-            <div className="flex justify-between items-center mt-4">
+            {/* Submit Button */}
+            <div className="flex justify-center mt-8">
               <button
-                onClick={handlePrevious}
-                disabled={currentQuestionIndex === 0}
-                className="px-6 py-2 bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleSubmit}
+                className="px-8 py-3 bg-green-600 text-white font-medium text-lg rounded-lg hover:bg-green-700 shadow-lg"
               >
-                Previous
+                Submit Exam
               </button>
-
-              {currentQuestionIndex === questions.length - 1 ? (
-                <button
-                  onClick={handleSubmit}
-                  className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
-                >
-                  Submit Exam
-                </button>
-              ) : (
-                <button
-                  onClick={handleNext}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
-                >
-                  Next
-                </button>
-              )}
             </div>
           </div>
 
           {/* Question Navigator */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4 sticky top-24">
+            <div className="bg-white rounded-lg shadow p-4 sticky top-44">
               <h3 className="font-semibold text-gray-900 mb-4">Questions</h3>
               <div className="grid grid-cols-5 gap-2 mb-4">
                 {questions.map((q, index) => (
                   <button
                     key={q.id}
-                    onClick={() => setCurrentQuestionIndex(index)}
+                    onClick={() => scrollToQuestion(index)}
                     className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
                       answers[q.id] !== undefined
                         ? "bg-green-500 text-white hover:bg-green-600"
-                        : currentQuestionIndex === index
-                        ? "bg-blue-500 text-white"
                         : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                     }`}
                   >
@@ -172,11 +153,15 @@ export default function MCQExamTakingPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span className="text-gray-700">Answered ({answeredCount})</span>
+                  <span className="text-gray-700">
+                    Answered ({answeredCount})
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                  <span className="text-gray-700">Not Answered ({questions.length - answeredCount})</span>
+                  <span className="text-gray-700">
+                    Not Answered ({questions.length - answeredCount})
+                  </span>
                 </div>
               </div>
             </div>
