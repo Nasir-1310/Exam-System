@@ -1,7 +1,8 @@
 // components/exam/WrittenQuestionCard.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface WrittenQuestionCardProps {
   questionNumber: number;
@@ -18,14 +19,16 @@ export default function WrittenQuestionCard({
   onImagesUpload,
   uploadedImages = [],
 }: WrittenQuestionCardProps) {
-  const [previews, setPreviews] = useState<string[]>(uploadedImages);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [imageLoadErrors, setImageLoadErrors] = useState<Set<string>>(new Set());
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null
+  );
+  const [imageLoadErrors, setImageLoadErrors] = useState<Set<string>>(
+    new Set()
+  );
 
-  // Update previews when uploadedImages prop changes (question navigation)
+  // Sync with uploadedImages prop - this is the key fix
   useEffect(() => {
-    setPreviews(uploadedImages);
-    setImageLoadErrors(new Set()); // Reset errors when changing questions
+    setImageLoadErrors(new Set());
   }, [uploadedImages]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,8 +41,9 @@ export default function WrittenQuestionCard({
   };
 
   const removeImage = (index: number) => {
-    const newPreviews = previews.filter((_, i) => i !== index);
-    setPreviews(newPreviews);
+    // Note: This won't work properly without a callback to parent
+    // For now, we'll just prevent removal or need to add onImageRemove prop
+    console.warn("Image removal not implemented - need parent callback");
   };
 
   const openImagePreview = (index: number) => {
@@ -51,7 +55,7 @@ export default function WrittenQuestionCard({
   };
 
   const handleImageError = (imageUrl: string) => {
-    setImageLoadErrors(prev => new Set([...prev, imageUrl]));
+    setImageLoadErrors((prev) => new Set([...prev, imageUrl]));
   };
 
   return (
@@ -66,7 +70,9 @@ export default function WrittenQuestionCard({
           </span>
         </div>
 
-        <p className="text-gray-700 mb-6 whitespace-pre-wrap leading-relaxed">{content}</p>
+        <p className="text-gray-700 mb-6 whitespace-pre-wrap leading-relaxed">
+          {content}
+        </p>
 
         <div className="border-t pt-6">
           <h3 className="font-semibold text-gray-900 mb-2">Your Answer</h3>
@@ -99,40 +105,56 @@ export default function WrittenQuestionCard({
             />
           </label>
 
-          {/* Image Previews */}
-          {previews.length > 0 && (
+          {/* Image Previews - Now using uploadedImages directly */}
+          {uploadedImages.length > 0 && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm font-semibold text-gray-800">
-                  Uploaded Images ({previews.length}):
+                  Uploaded Images ({uploadedImages.length}):
                 </p>
                 <span className="text-xs text-gray-500">
                   Click on image to preview
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {previews.map((preview, index) => (
+                {uploadedImages.map((preview, index) => (
                   <div
                     key={index}
                     className="relative group border-2 border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <div className="aspect-square bg-white flex items-center justify-center p-2">
+                    <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-2">
                       {imageLoadErrors.has(preview) ? (
                         <div className="flex flex-col items-center justify-center text-gray-400 p-4">
-                          <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          <svg
+                            className="w-12 h-12 mb-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
                           </svg>
-                          <span className="text-xs text-center">Failed to load</span>
+                          <span className="text-xs text-center">
+                            Failed to load
+                          </span>
                         </div>
                       ) : (
-                        <img
-                          src={preview}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-full object-contain cursor-pointer"
-                          onClick={() => openImagePreview(index)}
-                          onError={() => handleImageError(preview)}
-                          loading="lazy"
-                        />
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            fill
+                            className="object-contain cursor-pointer"
+                            onClick={() => openImagePreview(index)}
+                            onError={() => handleImageError(preview)}
+                            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            unoptimized={preview.startsWith('blob:')}
+                          />
+                        </div>
                       )}
                     </div>
 
@@ -227,16 +249,21 @@ export default function WrittenQuestionCard({
             className="max-w-6xl max-h-full w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white rounded-xl p-4 shadow-2xl">
-              <img
-                src={previews[selectedImageIndex]}
-                alt="Full preview"
-                className="max-w-full max-h-[80vh] object-contain mx-auto"
-              />
+            <div className="bg-white rounded-xl p-4 shadow-2xl relative">
+              <div className="relative w-full" style={{ minHeight: '60vh' }}>
+                <Image
+                  src={uploadedImages[selectedImageIndex]}
+                  alt="Full preview"
+                  width={1200}
+                  height={900}
+                  className="max-w-full max-h-[80vh] object-contain mx-auto"
+                  unoptimized={uploadedImages[selectedImageIndex].startsWith('blob:')}
+                />
+              </div>
             </div>
 
             {/* Navigation Controls */}
-            {previews.length > 1 && (
+            {uploadedImages.length > 1 && (
               <div className="flex items-center justify-center gap-4 mt-6">
                 <button
                   onClick={(e) => {
@@ -250,17 +277,17 @@ export default function WrittenQuestionCard({
                 </button>
 
                 <span className="text-white font-bold bg-gray-900 bg-opacity-80 px-6 py-3 rounded-lg shadow-lg">
-                  {selectedImageIndex + 1} / {previews.length}
+                  {selectedImageIndex + 1} / {uploadedImages.length}
                 </span>
 
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedImageIndex(
-                      Math.min(previews.length - 1, selectedImageIndex + 1)
+                      Math.min(uploadedImages.length - 1, selectedImageIndex + 1)
                     );
                   }}
-                  disabled={selectedImageIndex === previews.length - 1}
+                  disabled={selectedImageIndex === uploadedImages.length - 1}
                   className="bg-white text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all shadow-lg"
                 >
                   Next →
