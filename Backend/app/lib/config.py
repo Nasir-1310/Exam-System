@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
+    DEBUG: bool = False
     
     @property
     def cors_origins_list(self) -> List[str]:

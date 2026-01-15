@@ -1,8 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.lib.config import settings
-from dotenv import load_dotenv
-load_dotenv()
 
 from app.api import (
     test_router,
@@ -15,11 +17,16 @@ import logging
 logging.getLogger('passlib').setLevel(logging.ERROR)
 
 
+print(settings.DEBUG)
+
 app = FastAPI(
     title="BCS Exam System API",
     description="API for BCS Exam System Application",
     version="1.0.0",
     icon="🚀",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redocs" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None
 )
 
 # CORS middleware
