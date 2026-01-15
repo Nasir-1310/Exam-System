@@ -1,4 +1,4 @@
-// Frontend/lib/api.ts
+// lib/api.ts - Complete Updated Version
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 interface LoginCredentials {
@@ -10,6 +10,8 @@ interface RegisterData {
   email: string;
   password: string;
   name: string;
+  active_mobile: string;  // ← ADD THIS
+  whatsapp?: string;      // ← ADD THIS (optional)
   role?: string;
 }
 
@@ -24,6 +26,29 @@ interface TokenResponse {
   };
 }
 
+// Cookie helper functions
+const setCookie = (name: string, value: string, days: number = 7) => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+};
+
+const getCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(';');
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
+const deleteCookie = (name: string) => {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+};
+
 class ApiService {
   private getHeaders(includeAuth = true): HeadersInit {
     const headers: HeadersInit = {
@@ -31,7 +56,9 @@ class ApiService {
     };
 
     if (includeAuth) {
-      const token = localStorage.getItem('token');
+      const token = typeof window !== 'undefined' 
+        ? (localStorage.getItem('token') || getCookie('token'))
+        : null;
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -54,8 +81,13 @@ class ApiService {
     }
 
     const data = await response.json();
+    
+    // Store in both localStorage AND cookies
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
+    setCookie('token', data.token, 7);
+    setCookie('user_role', data.user.role, 7);
+    
     return data;
   }
 
@@ -72,23 +104,32 @@ class ApiService {
     }
 
     const data = await response.json();
+    
+    // Store in both localStorage AND cookies
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
+    setCookie('token', data.token, 7);
+    setCookie('user_role', data.user.role, 7);
+    
     return data;
   }
 
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    deleteCookie('token');
+    deleteCookie('user_role');
   }
 
   getCurrentUser() {
+    if (typeof window === 'undefined') return null;
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('token');
+    if (typeof window === 'undefined') return false;
+    return !!(localStorage.getItem('token') || getCookie('token'));
   }
 
   // Exam APIs
@@ -175,7 +216,6 @@ class ApiService {
     return response.json();
   }
 
-  // FIXED: Changed URL from /question/ to /questions/ (plural)
   async deleteQuestion(examId: number, questionId: number) {
     const response = await fetch(`${API_BASE_URL}/exam/${examId}/questions/${questionId}`, {
       method: 'DELETE',
@@ -190,7 +230,6 @@ class ApiService {
     return response.json();
   }
 
-  // FIXED: Changed URL from /question/ to /questions/ (plural)
   async updateQuestion(examId: number, questionId: number, questionData: any) {
     const response = await fetch(`${API_BASE_URL}/exam/${examId}/questions/${questionId}`, {
       method: 'PUT',

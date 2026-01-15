@@ -133,7 +133,7 @@ export default function Navbar() {
             ))}
             <div className="pt-2">
               <Button
-                href="/login"
+                href="/auth/login"
                 variant="primary"
                 size="sm"
                 fullWidth

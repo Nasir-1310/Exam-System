@@ -262,7 +262,7 @@ export default function ExamDetailModal({ exam, onClose, onUpdate }: ExamDetailM
                 <textarea
                   value={editForm.content}
                   onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full  text-gray-700 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   rows={3}
                   placeholder="প্রশ্ন লিখুন"
                 />
@@ -274,7 +274,7 @@ export default function ExamDetailModal({ exam, onClose, onUpdate }: ExamDetailM
                   অপশনসমূহ
                 </label>
                 {editForm.options.map((option, index) => (
-                  <div key={index} className="flex items-center gap-2 mb-2">
+                  <div key={index} className="flex  text-gray-700 items-center gap-2 mb-2">
                     <span className="font-semibold text-gray-600 w-8">
                       {String.fromCharCode(65 + index)}.
                     </span>

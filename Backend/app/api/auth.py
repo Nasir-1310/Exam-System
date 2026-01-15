@@ -88,4 +88,15 @@ async def session(current_user = Depends(get_current_user)):
 
 @router.post("/register", response_model=UserResponse)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    return await create_user(db, payload)
+    # SECURITY: Force USER role, ignore frontend input
+    user_data = RegisterRequest(
+        name=payload.name,
+        email=payload.email,
+        password=payload.password,
+        active_mobile=payload.active_mobile,
+        whatsapp=payload.whatsapp,
+        dob=payload.dob,
+        role="USER"  # ← Force USER role
+    )
+    
+    return await create_user(db, user_data)
