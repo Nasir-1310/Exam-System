@@ -73,7 +73,7 @@ export default function Navbar() {
           {/* Login Button - Desktop only */}
           <div className="hidden xl:block">
             <Button
-              href="/login"
+              href="/auth/login"
               variant="primary"
               size="sm"
             >

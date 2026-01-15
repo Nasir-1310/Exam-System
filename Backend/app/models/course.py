@@ -1,3 +1,4 @@
+# Backend/app/models/course.py
 from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, DECIMAL, Text
 from sqlalchemy.orm import relationship
 from app.lib.db import Base

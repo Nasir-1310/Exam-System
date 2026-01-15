@@ -1,3 +1,4 @@
+# Backend/app/api/auth.py
 from datetime import datetime, timedelta
 from app.lib.config import settings
 
@@ -14,41 +15,77 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
-	user = await get_user_by_email(db, payload.email)
+    try:
+        user = await get_user_by_email(db, payload.email)
 
-	if not user or not verify_password(payload.password, user.password_hash):
-		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        if not user or not verify_password(payload.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Invalid credentials"
+            )
 
-	token = create_token(user_id=user.id, role="admin" if user.is_admin else "user")
-	expires_time = datetime.utcnow() + timedelta(minutes=settings.token_EXPIRE_MINUTES)
+        # Check if user has is_admin attribute, otherwise use role
+        if hasattr(user, 'is_admin'):
+            role = "admin" if user.is_admin else "user"
+        else:
+            # Use role field from User model
+            role = user.role if user.role in ["ADMIN", "MODERATOR"] else "user"
 
-	return TokenResponse(token=token, expires_in=expires_time)
+        token = create_token(user_id=user.id, role=role)
+        expires_time = datetime.utcnow() + timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
+
+        return TokenResponse(token=token, expires_in=expires_time.isoformat(), user=user)
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
+        )
 
 
 @router.post("/login/docs")
 async def login_docs(db: AsyncSession = Depends(get_db), username: str = Form(), password: str = Form()):
-	try:
-		user = await get_user_by_email(db, username)
-		if not user or not verify_password(password, user.password_hash):
-			raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-		
-		token = create_token(user_id=user.id, role="admin" if user.is_admin else "user")
-		expires_time = datetime.utcnow() + timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
-		return {
-			"token": token, 
-			"token_type": "bearer",
-			"expires_in": expires_time,
-			"user": user
-		}
-	except Exception as e:
-		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+    try:
+        user = await get_user_by_email(db, username)
+        if not user or not verify_password(password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Invalid credentials"
+            )
+        
+        # Check if user has is_admin attribute, otherwise use role
+        if hasattr(user, 'is_admin'):
+            role = "admin" if user.is_admin else "user"
+        else:
+            role = user.role if user.role in ["ADMIN", "MODERATOR"] else "user"
+        
+        token = create_token(user_id=user.id, role=role)
+        expires_time = datetime.utcnow() + timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
+        
+        return {
+            "token": token, 
+            "token_type": "bearer",
+            "expires_in": expires_time,
+            "user": user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Login docs error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Internal server error"
+        )
 
 
 @router.get("/session", response_model=UserResponse)
 async def session(current_user = Depends(get_current_user)):
-	return current_user
+    return current_user
 
 
 @router.post("/register", response_model=UserResponse)
 async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
-	return await create_user(db, payload)
+    return await create_user(db, payload)

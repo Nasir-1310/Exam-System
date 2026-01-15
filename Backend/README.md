@@ -13,3 +13,8 @@ chmod +x migration.sh
 ./migration.sh create "migration message"
 ./migration.sh run
 ```
+
+<!-- If you need to make any changes to your models in the future, just run:
+bashalembic revision --autogenerate -m "description of changes"
+alembic upgrade head
+ -->

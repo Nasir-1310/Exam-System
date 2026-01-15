@@ -1,3 +1,4 @@
+# Backend/app/models/exam.py
 from sqlalchemy import Column, Integer, String, Text, Date, DECIMAL, ForeignKey
 from sqlalchemy.orm import relationship
 from app.lib.db import Base 
@@ -11,7 +12,7 @@ class Exam(Base):
     duration_minutes = Column(Integer, nullable=False)
     mark = Column(DECIMAL, nullable=False)
     minus_mark = Column(DECIMAL, nullable=False)
-    course_id = Column(Integer, ForeignKey("Course.id"), nullable=False)
+    course_id = Column(Integer, ForeignKey("Course.id"), nullable=True)
 
     course = relationship("Course", back_populates="exams")
     questions = relationship("Question", back_populates="exam")
