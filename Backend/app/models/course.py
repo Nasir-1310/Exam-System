@@ -22,3 +22,4 @@ class Course(Base):
     
     exams = relationship("Exam", back_populates="course")
     users = relationship("User", secondary=UserCourseRelation, back_populates="courses") 
+    admission_requests = relationship("AdmissionRequest", back_populates="course")

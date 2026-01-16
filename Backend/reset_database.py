@@ -6,7 +6,7 @@ async def reset_database():
     # Connect to default 'postgres' database
     conn = await asyncpg.connect(
         user='postgres',
-        password='postgresql123',
+        password='password',
         database='postgres',
         host='localhost',
         port=5432

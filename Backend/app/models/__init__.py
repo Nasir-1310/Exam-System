@@ -6,3 +6,4 @@ from app.models.exam import Exam
 from app.models.question import Question
 from app.models.result import Result
 from app.models.user import User
+from app.models.admission_request import AdmissionRequest

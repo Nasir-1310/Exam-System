@@ -151,3 +151,29 @@ class MCQBulkRequest(BaseModel):
                 ]
             }
         }
+
+
+class SubmitAnswerRequest(BaseModel):
+    question_id: int
+    answer: str
+
+class ExamSubmitRequest(BaseModel):
+    exam_id: int
+    answers: List[SubmitAnswerRequest]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "exam_id": 1,
+                "answers": [
+                    {
+                        "question_id": 1,
+                        "answer": "A"
+                    },
+                    {
+                        "question_id": 2,
+                        "answer": "B"
+                    }
+                ]
+            }
+        }

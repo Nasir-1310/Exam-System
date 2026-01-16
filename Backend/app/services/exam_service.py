@@ -1,18 +1,21 @@
 # Backend/app/services/exam_service.py
 from app.models import Exam
 from app.models.question import Question
+from app.models.result import Result
 from app.schemas import (
     ExamCreateRequest,
     ExamUpdateRequest,
     QuestionCreateRequest,
-    MCQBulkRequest
+    MCQBulkRequest,
+    ResultDetailedResponse,
+    ExamSubmitRequest
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status, UploadFile, File
 from typing import List, Annotated
-from app.utils.docx_utils import process_docx
+from app.utils.docx_to_questions import docx_to_questions
 
 
 async def get_all_exams_service(db: AsyncSession) -> List[Exam]:
@@ -273,3 +276,63 @@ async def update_question_service(
         "question_id": question.id,
         "exam_id": exam_id
     }
+
+
+async def submit_exam_service(exam_id: int, submission: ExamSubmitRequest, db: AsyncSession) -> ResultDetailedResponse:
+    """Submit exam answers"""
+    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = exam_result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Exam with id {exam_id} not found"
+        )
+    
+    for answer in submission.answers:
+        question_result = await db.execute(
+            select(Question).where(
+                Question.id == answer.question_id,
+                Question.exam_id == exam_id
+            )
+        )
+        question = question_result.scalar_one_or_none()
+        
+        if not question:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Question with id {answer.question_id} not found in exam {exam_id}"
+            )
+    
+    score = 0
+    for answer in submission.answers:
+        question_result = await db.execute(
+            select(Question).where(
+                Question.id == answer.question_id,
+                Question.exam_id == exam_id
+            )
+        )
+        question = question_result.scalar_one_or_none()
+        
+        if not question:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Question with id {answer.question_id} not found in exam {exam_id}"
+            )
+        
+        if question.answer == answer.answer:
+            score += 1
+        else:
+            score -= exam.minus_mark
+    
+    result = Result(
+        exam_id=exam_id,
+        user_id=exam.user_id,
+        score=max(0, score),
+        total_questions=len(submission.answers)
+    )
+    db.add(result)
+    await db.commit()
+    await db.refresh(result)
+    
+    return result

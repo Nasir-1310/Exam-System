@@ -23,6 +23,5 @@ class ResultResponse(BaseModel):
 	mark: float
 	created_at: datetime
 
-
 class ResultDetailedResponse(ResultResponse):
     answers: List[AnswerResponse]

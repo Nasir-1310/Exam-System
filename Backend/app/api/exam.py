@@ -111,6 +111,6 @@ async def delete_question(
     return result
 
 
-@router.post("/{exam_id}/submit")
-async def submit_exam(exam_id: int, answers: list[int], db: Session = Depends(get_db)):
-	return submit_exam_service(exam_id, answers, db)
+@router.post("/{exam_id}/submit", response_model=ResultDetailedResponse)
+async def submit_exam(exam_id: int, submission: ExamSubmitRequest, db: Session = Depends(get_db)):
+	return await submit_exam_service(exam_id, submission, db)

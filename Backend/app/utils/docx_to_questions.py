@@ -3,9 +3,8 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from typing import List, Optional, Tuple
 
-from app.models.enums.status import Status
-from app.schemas.question import QuestionResponse
 from app.utils.docx_utils import extract_questions_from_docx
+from app.schemas import QuestionResponse
 
 
 DELIM_QUESTION = '=='
