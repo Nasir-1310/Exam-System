@@ -4,3 +4,4 @@ from app.api.auth import router as auth_router
 from app.api.exam import router as exam_router
 from app.api.course import router as course_router
 from app.api.user import router as user_router  # ADD THIS
+from app.api.result import router as result_router

@@ -6,7 +6,9 @@ from datetime import datetime
 
 class QuestionCreateRequest(BaseModel):
     q_type: str
-    content: str
+
+    content: Optional[str] = None
+    image: Optional[str] = None
 
     option_a: Optional[str] = None    
     option_a_img: Optional[str] = None
@@ -44,11 +46,11 @@ class QuestionResponse(BaseModel):
 
     answer: Optional[str] = None
 
-    @validator("content", "image", pre=True)
-    def check_content_and_image(cls, v):
-        if v is None:
-            raise ValueError("Content or image must be provided")
-        return v
+    # @validator("content", "image", pre=True)
+    # def check_content_and_image(cls, v):
+    #     if v is None:
+    #         raise ValueError("Content or image must be provided")
+    #     return v
     
     class Config:
         from_attributes = True
@@ -129,23 +131,29 @@ class MCQBulkRequest(BaseModel):
                     {
                         "q_type": "MCQ",
                         "content": "Question 1?",
-                        "image": None,
-                        "options": ["A", "B", "C", "D"],
-                        "option_a_img": None,
-                        "option_b_img": None,
-                        "option_c_img": None,
-                        "option_d_img": None,
+                        "image": "img url or None",
+                        "option_a": "A",
+                        "option_b": "B",
+                        "option_c": "C",
+                        "option_d": "D",
+                        "option_a_img": "img url or None",
+                        "option_b_img": "img url or None",
+                        "option_c_img": "img url or None",
+                        "option_d_img": "img url or None",
                         "answer": "A"
                     },
                     {
                         "q_type": "MCQ",
                         "content": "Question 2?",
-                        "image": None,
-                        "options": ["A", "B", "C", "D"],
-                        "option_a_img": None,
-                        "option_b_img": None,
-                        "option_c_img": None,
-                        "option_d_img": None,
+                        "image": "img url or None",
+                        "option_a": "A",
+                        "option_b": "B",
+                        "option_c": "C",
+                        "option_d": "D",
+                        "option_a_img": "img url or None",
+                        "option_b_img": "img url or None",
+                        "option_c_img": "img url or None",
+                        "option_d_img": "img url or None",
                         "answer": "A"
                     }
                 ]

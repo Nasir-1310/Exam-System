@@ -8,9 +8,11 @@ import logging
 # Configure logging
 logging.getLogger('passlib').setLevel(logging.ERROR)
 
-print(settings.DEBUG)
 app = FastAPI(
     icon="🚀",
+    title="Exam System API",
+    description="API for Exam System",
+    version="1.0.0",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redocs" if settings.DEBUG else None,
     openapi_url="/openapi.json" if settings.DEBUG else None
@@ -32,6 +34,7 @@ from app.api import (
     exam_router,
     course_router,
     user_router,
+    result_router
 )
 
 # Include routers
@@ -40,6 +43,7 @@ app.include_router(auth_router)
 app.include_router(exam_router)
 app.include_router(course_router)
 app.include_router(user_router)
+app.include_router(result_router)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,7 @@
 import re
-from datetime import datetime, timezone
-from uuid import uuid4
 from typing import List, Optional, Tuple
-
 from app.utils.docx_utils import extract_questions_from_docx
-from app.schemas import QuestionResponse
+from app.schemas import QuestionCreateRequest
 
 
 DELIM_QUESTION = '=='
@@ -44,11 +41,11 @@ def _split_text_and_image(section: str) -> Tuple[Optional[str], Optional[str]]:
     return text_value, image_tag
 
 
-def _parse_answers(raw: str) -> List[str]:
+def _parse_answers(raw: str) -> str:
     if not raw:
-        return []
+        return ''
     tokens = [part.strip() for part in re.split(r'[\s,]+', raw) if part.strip()]
-    return [token.upper() for token in tokens]
+    return [token.upper() for token in tokens][0] if tokens else ''
 
 
 def _parse_tags(raw: str) -> List[str]:
@@ -57,7 +54,7 @@ def _parse_tags(raw: str) -> List[str]:
     return [part.strip() for part in re.split(r'[\n,]+', raw) if part.strip()]
 
 
-def _build_question_from_segments(segments: List[str]) -> Optional[QuestionResponse]:
+def _build_question_from_segments(segments: List[str]) -> Optional[QuestionCreateRequest]:
     if not segments:
         return None
 
@@ -73,42 +70,35 @@ def _build_question_from_segments(segments: List[str]) -> Optional[QuestionRespo
         option_img[label] = image
 
     answers_raw = segments[5] if len(segments) > 5 else ''
-    explanation_raw = segments[6] if len(segments) > 6 else ''
-    tags_raw = segments[7] if len(segments) > 7 else ''
+    # explanation and tags are parsed but not currently in the schema
+    # explanation_raw = segments[6] if len(segments) > 6 else ''
+    # tags_raw = segments[7] if len(segments) > 7 else ''
 
-    answers = _parse_answers(answers_raw)
-    explanation_text, explanation_img = _split_text_and_image(explanation_raw)
-    tags = _parse_tags(tags_raw)
+    answer = _parse_answers(answers_raw)
+    # explanation_text, explanation_img = _split_text_and_image(explanation_raw)
+    # tags = _parse_tags(tags_raw)
 
     if not (content_text or content_img):
         return None
 
-    timestamp = datetime.now(timezone.utc)
-    return QuestionResponse(
-        id=uuid4(),
+    return QuestionCreateRequest(
+        q_type="MCQ",
         content=content_text or content_img or '',
-        img=content_img,
-        explanation=explanation_text,
-        explanation_img=explanation_img,
-        a=option_text.get('a'),
-        a_img=option_img.get('a'),
-        b=option_text.get('b'),
-        b_img=option_img.get('b'),
-        c=option_text.get('c'),
-        c_img=option_img.get('c'),
-        d=option_text.get('d'),
-        d_img=option_img.get('d'),
-        answers=answers,
-        tags=tags,
-        allow_multiple=len(answers) > 1,
-        status=Status.ACTIVE,
-        created_at=timestamp,
-        updated_at=timestamp,
+        image=content_img,
+        option_a=option_text.get('a'),
+        option_a_img=option_img.get('a'),
+        option_b=option_text.get('b'),
+        option_b_img=option_img.get('b'),
+        option_c=option_text.get('c'),
+        option_c_img=option_img.get('c'),
+        option_d=option_text.get('d'),
+        option_d_img=option_img.get('d'),
+        answer=answer
     )
 
 
-def docx_to_questions(file_path: str) -> List[QuestionResponse]:
-    """Parse a DOCX file into a list of QuestionResponse objects.
+def docx_to_questions(file_path: str) -> List[QuestionCreateRequest]:
+    """Parse a DOCX file into a list of QuestionCreateRequest objects.
 
     Expected structure per question:
     - lines until "--" => question content (text or image)
@@ -122,7 +112,7 @@ def docx_to_questions(file_path: str) -> List[QuestionResponse]:
     """
 
     fragments = extract_questions_from_docx(file_path)
-    questions: List[QuestionResponse] = []
+    questions: List[QuestionCreateRequest] = []
     segments: List[str] = []
     current_lines: List[str] = []
 
