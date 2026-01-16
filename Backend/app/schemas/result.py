@@ -12,8 +12,11 @@ class AnswerCreate(BaseModel):
 
 class AnswerResponse(BaseModel):
 	question: QuestionResponse
-	answer_idx: int
+	answer: int
 	is_correct: bool
+	
+	class Config:
+		from_attributes = True
 
 
 class ResultResponse(BaseModel):
@@ -21,7 +24,13 @@ class ResultResponse(BaseModel):
 	exam_id: int
 	user_id: int
 	mark: float
-	created_at: datetime
+	correct_answers: int
+	incorrect_answers: int
+	created_at: Optional[datetime] = None
+	publish_time: Optional[datetime] = None
+	
+	class Config:
+		from_attributes = True
 
 
 class ResultDetailedResponse(ResultResponse):

@@ -24,11 +24,9 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
                 detail="Invalid credentials"
             )
 
-        # Check if user has is_admin attribute, otherwise use role
         if hasattr(user, 'is_admin'):
             role = "admin" if user.is_admin else "user"
         else:
-            # Use role field from User model
             role = user.role if user.role in ["ADMIN", "MODERATOR"] else "user"
 
         token = create_token(user_id=user.id, role=role)
@@ -39,7 +37,6 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Login error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
@@ -66,7 +63,7 @@ async def login_docs(db: AsyncSession = Depends(get_db), username: str = Form(),
         expires_time = datetime.utcnow() + timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
         
         return {
-            "token": token, 
+            "access_token": token, 
             "token_type": "bearer",
             "expires_in": expires_time,
             "user": user

@@ -5,11 +5,13 @@ from app.lib.db import Base
 
 class Result(Base):
     __tablename__ = "Result"
+
     id = Column(Integer, primary_key=True, index=True)
     correct_answers = Column(Integer, nullable=False)
     incorrect_answers = Column(Integer, nullable=False)
     mark = Column(DECIMAL, nullable=False)
     publish_time = Column(Date, nullable=False)
+    
     exam_id = Column(Integer, ForeignKey("Exam.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("User.id"), nullable=False)
 

@@ -1,17 +1,23 @@
 # Backend/app/services/exam_service.py
-from app.models import Exam
-from app.models.question import Question
+from app.models import Exam, Question, Result, Answer
 from app.schemas import (
-    ExamCreateRequest, 
-    ExamUpdateRequest, 
-    QuestionCreateRequest, 
-    MCQBulkRequest
+    ExamCreateRequest,
+    ExamUpdateRequest,
+    QuestionCreateRequest,
+    MCQBulkRequest,
+    ResultDetailedResponse,
+    ExamSubmitRequest
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from fastapi import HTTPException, status
-from typing import List
+from fastapi import HTTPException, status, UploadFile, File
+from typing import List, Annotated
+from app.utils.docx_to_questions import docx_to_questions
+
+from datetime import datetime
+import os
+import tempfile
 
 
 async def get_all_exams_service(db: AsyncSession) -> List[Exam]:
@@ -40,8 +46,15 @@ async def add_question_to_exam_service(
         exam_id=exam_id,
         q_type=question.q_type,
         content=question.content,
-        options=question.options,
-        answer_idx=question.answer_idx
+        option_a=question.option_a,
+        option_b=question.option_b,
+        option_c=question.option_c,
+        option_d=question.option_d,
+        option_a_img=question.option_a_img,
+        option_b_img=question.option_b_img,
+        option_c_img=question.option_c_img,
+        option_d_img=question.option_d_img,
+        answer=question.answer,
     )
     
     db.add(question_obj)
@@ -69,14 +82,78 @@ async def add_mcq_bulk_to_exam_service(
             exam_id=exam_id,
             q_type=question_data.q_type,
             content=question_data.content,
-            options=question_data.options,
-            answer_idx=question_data.answer_idx
+            image=question_data.image,
+            option_a=question_data.option_a,
+            option_a_img=question_data.option_a_img,
+            option_b=question_data.option_b,
+            option_b_img=question_data.option_b_img,
+            option_c=question_data.option_c,
+            option_c_img=question_data.option_c_img,
+            option_d=question_data.option_d,
+            option_d_img=question_data.option_d_img,
+            answer=question_data.answer
         )
         db.add(question_obj)
     
     await db.commit()
     await db.refresh(exam)
     return exam
+
+
+async def upload_mcq_docx_to_exam_service(
+    db: AsyncSession,
+    exam_id: int,
+    file: Annotated[UploadFile, File(...)]
+):
+    """Upload MCQ questions from docx file"""
+    
+    # Verify exam exists
+    result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = result.scalar_one_or_none()
+    
+    if exam is None:
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    # Use NamedTemporaryFile to handle the file safely
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        temp_file_path = tmp.name
+
+    try:
+        # Convert docx to questions
+        questions = docx_to_questions(temp_file_path)
+        
+        questions_added = []
+        # Add questions to exam
+        for question in questions:
+            question_obj = Question(
+                exam_id=exam_id,
+                q_type=question.q_type,
+                content=question.content,
+                image=question.image,
+                option_a=question.option_a,
+                option_a_img=question.option_a_img,
+                option_b=question.option_b,
+                option_b_img=question.option_b_img,
+                option_c=question.option_c,
+                option_c_img=question.option_c_img,
+                option_d=question.option_d,
+                option_d_img=question.option_d_img,
+                answer=question.answer
+            )
+            db.add(question_obj)
+            questions_added.append(question_obj)
+        
+        await db.commit()
+        await db.refresh(exam)
+        return questions_added
+    finally:
+        # Clean up temp file
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+    
 
 
 async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam:
@@ -249,3 +326,86 @@ async def update_question_service(
         "question_id": question.id,
         "exam_id": exam_id
     }
+
+
+async def submit_exam_service(submission: ExamSubmitRequest, db: AsyncSession, user_id: int) -> Result:
+    """Submit exam answers"""
+    # 1. Verify exam exists
+    exam_result = await db.execute(select(Exam).where(Exam.id == submission.exam_id))
+    exam = exam_result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Exam with id {submission.exam_id} not found"
+        )
+    
+    # 2. Process answers and calculate score
+    score = 0
+    correct_count = 0
+    incorrect_count = 0
+    answers_to_save = []
+    
+    for ans_data in submission.answers:
+        # Get question
+        q_result = await db.execute(
+            select(Question).where(
+                Question.id == ans_data.question_id,
+                Question.exam_id == submission.exam_id
+            )
+        )
+        question = q_result.scalar_one_or_none()
+        
+        if not question:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Question with id {ans_data.question_id} not found in exam {submission.exam_id}"
+            )
+        
+        is_correct = (question.answer == ans_data.answer)
+        if is_correct:
+            score += 1
+            correct_count += 1
+        else:
+            score -= float(exam.minus_mark)
+            incorrect_count += 1
+            
+        # Create Answer object
+        answer_map = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+        ans_idx = answer_map.get(ans_data.answer.upper(), 0)
+        
+        answer_obj = Answer(
+            question_id=question.id,
+            exam_id=submission.exam_id,
+            answer=ans_idx,
+            is_correct=is_correct,
+            mark=1.0 if is_correct else -float(exam.minus_mark)
+        )
+        answers_to_save.append(answer_obj)
+    
+    # 3. Create Result
+    result = Result(
+        exam_id=submission.exam_id,
+        user_id=user_id,
+        mark=max(0.0, float(score)),
+        correct_answers=correct_count,
+        incorrect_answers=incorrect_count,
+        publish_time=datetime.now()
+    )
+    db.add(result)
+    await db.flush() # Get result.id
+    
+    # 4. Link answers to result and save
+    for answer_obj in answers_to_save:
+        answer_obj.result_id = result.id
+        db.add(answer_obj)
+        
+    await db.commit()
+    
+    # 5. Reload results with answers eagerly to avoid lazy-loading error in Pydantic
+    final_result = await db.execute(
+        select(Result)
+        .options(selectinload(Result.answers).selectinload(Answer.question))
+        .where(Result.id == result.id)
+    )
+    return final_result.scalar_one()

@@ -1,22 +1,21 @@
-# Backend/app/main.py
+from dotenv import load_dotenv
+load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import logging
-
-# Load environment variables first
-load_dotenv()
-
 from app.lib.config import settings
+import logging
 
 # Configure logging
 logging.getLogger('passlib').setLevel(logging.ERROR)
 
-# Create FastAPI app
 app = FastAPI(
-    title="BCS Exam System API",
-    description="API for BCS Exam System Application",
+    icon="🚀",
+    title="Exam System API",
+    description="API for Exam System",
     version="1.0.0",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redocs" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None
 )
 
 # CORS middleware
@@ -35,6 +34,7 @@ from app.api import (
     exam_router,
     course_router,
     user_router,
+    result_router
 )
 
 # Include routers
@@ -43,6 +43,7 @@ app.include_router(auth_router)
 app.include_router(exam_router)
 app.include_router(course_router)
 app.include_router(user_router)
+app.include_router(result_router)
 
 
 if __name__ == "__main__":

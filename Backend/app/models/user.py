@@ -15,7 +15,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     
     # Contact
-    active_mobile = Column(String(20), nullable=False)
+    active_mobile = Column(String(20), nullable=True)
     whatsapp = Column(String(20), nullable=True)
     
     # Personal info
@@ -28,3 +28,4 @@ class User(Base):
     # Relationships
     results = relationship("Result", back_populates="user")
     courses = relationship("Course", secondary=UserCourseRelation, back_populates="users")
+    admission_requests = relationship("AdmissionRequest", back_populates="user")
