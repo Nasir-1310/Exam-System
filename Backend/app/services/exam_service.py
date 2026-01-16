@@ -2,16 +2,17 @@
 from app.models import Exam
 from app.models.question import Question
 from app.schemas import (
-    ExamCreateRequest, 
-    ExamUpdateRequest, 
-    QuestionCreateRequest, 
+    ExamCreateRequest,
+    ExamUpdateRequest,
+    QuestionCreateRequest,
     MCQBulkRequest
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from fastapi import HTTPException, status
-from typing import List
+from fastapi import HTTPException, status, UploadFile, File
+from typing import List, Annotated
+from app.utils.docx_utils import process_docx
 
 
 async def get_all_exams_service(db: AsyncSession) -> List[Exam]:
@@ -69,14 +70,37 @@ async def add_mcq_bulk_to_exam_service(
             exam_id=exam_id,
             q_type=question_data.q_type,
             content=question_data.content,
-            options=question_data.options,
-            answer_idx=question_data.answer_idx
+            image=question_data.image,
+            option_a=question_data.option_a,
+            option_a_img=question_data.option_a_img,
+            option_b=question_data.option_b,
+            option_b_img=question_data.option_b_img,
+            option_c=question_data.option_c,
+            option_c_img=question_data.option_c_img,
+            option_d=question_data.option_d,
+            option_d_img=question_data.option_d_img,
+            answer=question_data.answer
         )
         db.add(question_obj)
     
     await db.commit()
     await db.refresh(exam)
     return exam
+
+
+async def upload_mcq_docx_to_exam_service(
+    db: AsyncSession,
+    exam_id: int,
+    file: Annotated[UploadFile, File(...)]
+):
+    """Upload MCQ questions from docx file"""
+    # Save to temp file
+    temp_file_path = f"temp_{exam_id}.docx"
+    with open(temp_file_path, "wb") as f:
+        f.write(file.file.read())
+
+    return temp_file_path
+    
 
 
 async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam:

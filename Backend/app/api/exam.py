@@ -1,8 +1,9 @@
 # Backend/app/api/exam.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
+
 from app.services.exam_service import *
 from app.schemas.exam import *
 from app.lib.db import get_db
@@ -54,9 +55,14 @@ async def add_question_to_exam(
         "question_id": result.id
     }
 
-@router.post("/{exam_id}/mcq-bulk")
+@router.post("/{exam_id}/mcq-bulk-entry", status_code=status.HTTP_201_CREATED)
 async def add_mcq_bulk_to_exam(exam_id: int, question_request: MCQBulkRequest, db: Session = Depends(get_db)):
 	res = await add_mcq_bulk_to_exam_service(exam_id, question_request, db)
+	return res
+
+@router.post("/{exam_id}/mcq-docx-upload", status_code=status.HTTP_201_CREATED)
+async def add_mcq_bulk_to_exam(exam_id: int, file: Annotated[UploadFile, File(...)], db: Session = Depends(get_db)):
+	res = await upload_mcq_docx_to_exam_service(exam_id, file, db)
 	return res
 
 

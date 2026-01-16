@@ -8,12 +8,18 @@ class Question(Base):
     id = Column(Integer, primary_key=True, index=True)
     q_type = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
+    image = Column(Text)
     options = Column(JSONB)
     option_a = Column(Text)
+    option_a_img = Column(Text)
     option_b = Column(Text)
+    option_b_img = Column(Text)
     option_c = Column(Text)
+    option_c_img = Column(Text)
     option_d = Column(Text)
+    option_d_img = Column(Text)
     answer_idx = Column(Integer)
+
     answer = Column(String(1))
 
     exam_id = Column(Integer, ForeignKey("Exam.id"))

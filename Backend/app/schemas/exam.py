@@ -1,5 +1,5 @@
 # Backend/app/schemas/exam.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -7,16 +7,48 @@ from datetime import datetime
 class QuestionCreateRequest(BaseModel):
     q_type: str
     content: str
-    options: Optional[List[str]] = None
-    answer_idx: Optional[int] = None
+
+    option_a: Optional[str] = None    
+    option_a_img: Optional[str] = None
+
+    option_b: Optional[str] = None
+    option_b_img: Optional[str] = None
+
+    option_c: Optional[str] = None
+    option_c_img: Optional[str] = None
+
+    option_d: Optional[str] = None
+    option_d_img: Optional[str] = None
+
+    answer: Optional[str] = None
 
 
 class QuestionResponse(BaseModel):
     id: int
     q_type: str
-    content: str
-    options: Optional[List[str]] = None
-    answer_idx: Optional[int] = None
+
+    content: Optional[str] = None
+    image: Optional[str] = None
+
+    option_a: Optional[str] = None    
+    option_a_img: Optional[str] = None
+
+    option_b: Optional[str] = None
+    option_b_img: Optional[str] = None
+
+    option_c: Optional[str] = None
+    option_c_img: Optional[str] = None
+
+    option_d: Optional[str] = None
+    option_d_img: Optional[str] = None
+
+    answer: Optional[str] = None
+
+    @validator("content", "image", pre=True)
+    def check_content_and_image(cls, v):
+        if v is None:
+            raise ValueError("Content or image must be provided")
+        return v
     
     class Config:
         from_attributes = True
@@ -46,8 +78,16 @@ class ExamCreateRequest(BaseModel):
                     {
                         "q_type": "MCQ",
                         "content": "Sample question?",
-                        "options": ["A", "B", "C", "D"],
-                        "answer_idx": 0
+                        "image": None,
+                        "option_a": "A",
+                        "option_a_img": None,
+                        "option_b": "B",
+                        "option_b_img": None,
+                        "option_c": "C",
+                        "option_c_img": None,
+                        "option_d": "D",
+                        "option_d_img": None,
+                        "answer": "A"
                     }
                 ]
             }
@@ -89,14 +129,24 @@ class MCQBulkRequest(BaseModel):
                     {
                         "q_type": "MCQ",
                         "content": "Question 1?",
+                        "image": None,
                         "options": ["A", "B", "C", "D"],
-                        "answer_idx": 0
+                        "option_a_img": None,
+                        "option_b_img": None,
+                        "option_c_img": None,
+                        "option_d_img": None,
+                        "answer": "A"
                     },
                     {
                         "q_type": "MCQ",
                         "content": "Question 2?",
+                        "image": None,
                         "options": ["A", "B", "C", "D"],
-                        "answer_idx": 1
+                        "option_a_img": None,
+                        "option_b_img": None,
+                        "option_c_img": None,
+                        "option_d_img": None,
+                        "answer": "A"
                     }
                 ]
             }

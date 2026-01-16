@@ -11,7 +11,7 @@ class Answer(Base):
     result_id = Column(Integer, ForeignKey("Result.id"))
     answer = Column(Integer)
     is_correct = Column(Boolean)
-    mark = Column(Integer)
+    mark = Column(DECIMAL)
     written_answers = Column(JSONB, default=[]) # list of image urls
 
     question = relationship("Question", back_populates="answers")
