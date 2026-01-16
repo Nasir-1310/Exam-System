@@ -1,4 +1,6 @@
+# Backend/app/services/exam_service.py
 from app.models import Exam
+from app.models.question import Question
 from app.schemas import (
     ExamCreateRequest, 
     ExamUpdateRequest, 
@@ -7,68 +9,243 @@ from app.schemas import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from fastapi import HTTPException, status
 from typing import List
 
 
 async def get_all_exams_service(db: AsyncSession) -> List[Exam]:
-	return await db.execute(select(Exam))
+    """Get all exams with questions"""
+    result = await db.execute(
+        select(Exam).options(selectinload(Exam.questions))
+    )
+    return result.scalars().all()
 
 
-async def add_question_to_exam_service(db: AsyncSession, exam_id: int, question: QuestionCreateRequest):
-    exam = await db.execute(select(Exam).where(Exam.id == exam_id))
-    question = Question(**question.dict()) 
-    await db.add(question)
-    exam.questions.append(question)
+async def add_question_to_exam_service(
+    db: AsyncSession,
+    exam_id: int,
+    question: QuestionCreateRequest
+):
+    """Add a single question to exam"""
+    # Verify exam exists
+    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = exam_result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    # Create question
+    question_obj = Question(
+        exam_id=exam_id,
+        q_type=question.q_type,
+        content=question.content,
+        options=question.options,
+        answer_idx=question.answer_idx
+    )
+    
+    db.add(question_obj)
     await db.commit()
-    return exam
+    await db.refresh(question_obj)
+    return question_obj
 
-async def add_mcq_bulk_to_exam_service(db: AsyncSession, exam_id: int, question_request: MCQBulkRequest):
-    if not question_request.question:
-        raise HTTPException(status_code=400, detail="Invalid question format")
 
-    exam = await db.execute(select(Exam).where(Exam.id == exam_id))
+async def add_mcq_bulk_to_exam_service(
+    db: AsyncSession, 
+    exam_id: int, 
+    question_request: MCQBulkRequest
+):
+    """Add multiple questions to exam"""
+    # Get exam first
+    result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = result.scalar_one_or_none()
+    
     if exam is None:
         raise HTTPException(status_code=404, detail="Exam not found")
-
-    questions = question_request.questions.split("\n")
-    if not questions or len(questions) == 0 or len(questions) % 4 != 0:
-        raise HTTPException(status_code=400, detail="Invalid question format")
-
-    for i in range(0, len(questions), 4):
-        question = QuestionCreateRequest(
-            question=questions[i], 
-            options=questions[i+1:i+4], 
-            answer_idx=questions[i+4]
+    
+    # Add all questions from the list
+    for question_data in question_request.questions:
+        question_obj = Question(
+            exam_id=exam_id,
+            q_type=question_data.q_type,
+            content=question_data.content,
+            options=question_data.options,
+            answer_idx=question_data.answer_idx
         )
-        await add_question_to_exam_service(db, exam_id, question)
-
+        db.add(question_obj)
+    
     await db.commit()
+    await db.refresh(exam)
     return exam
 
 
 async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam:
-    questions = exam.questions
-    for question in questions:
-        await add_question_to_exam_service(db, exam.id, question)
-    exam = Exam(**exam.dict())
-    await db.add(exam)
-    await db.commit()
-    return exam
+    """Create exam with questions"""
+    try:
+        # Create exam without questions
+        exam_data = exam.model_dump(exclude={'questions'})
+        exam_obj = Exam(**exam_data)
+        db.add(exam_obj)
+        await db.flush()
+        
+        # Add questions
+        for question in exam.questions:
+            question_obj = Question(
+                exam_id=exam_obj.id,
+                q_type=question.q_type,
+                content=question.content,
+                options=question.options,
+                answer_idx=question.answer_idx
+            )
+            db.add(question_obj)
+        
+        await db.commit()
+        await db.refresh(exam_obj)
+        return exam_obj
+        
+    except Exception as e:
+        await db.rollback()
+        print(f"Error creating exam: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create exam: {str(e)}"
+        )
 
 
 async def get_exam_service(exam_id: int, db: AsyncSession) -> Exam:
-	return await db.execute(select(Exam).where(Exam.id == exam_id))
+    """Get exam by ID with questions"""
+    result = await db.execute(
+        select(Exam)
+        .options(selectinload(Exam.questions))
+        .where(Exam.id == exam_id)
+    )
+    exam = result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    return exam
 
 
-async def update_exam_service(exam_id: int, exam: ExamUpdateRequest, db: AsyncSession) -> Exam:
-	exam = await db.execute(select(Exam).where(Exam.id == exam_id))
-	exam.update(exam.dict())
-	await db.commit()
-	return exam
+async def update_exam_service(
+    exam_id: int, 
+    exam_update: ExamUpdateRequest, 
+    db: AsyncSession
+) -> Exam:
+    """Update exam details"""
+    result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    update_data = exam_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(exam, field, value)
+    
+    await db.commit()
+    await db.refresh(exam)
+    return exam
 
 
-async def delete_exam_service(exam_id: int, db: AsyncSession) -> Exam:
-	exam = await db.execute(select(Exam).where(Exam.id == exam_id))
-	await db.delete(exam)
-	await db.commit()
-	return exam
+async def delete_exam_service(exam_id: int, db: AsyncSession) -> bool:
+    """Delete exam"""
+    result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    db.delete(exam)
+    await db.commit()
+    return True
+
+
+# ============= NEW FUNCTIONS ADDED BELOW =============
+
+# ADDED: Delete a specific question from an exam
+async def delete_question_service(db: AsyncSession, exam_id: int, question_id: int):
+    """Delete a specific question from an exam"""
+    # Check if exam exists
+    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = exam_result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Exam with id {exam_id} not found"
+        )
+    
+    # Check if question exists and belongs to this exam
+    question_result = await db.execute(
+        select(Question).where(
+            Question.id == question_id,
+            Question.exam_id == exam_id
+        )
+    )
+    question = question_result.scalar_one_or_none()
+    
+    if not question:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Question with id {question_id} not found in exam {exam_id}"
+        )
+    
+    # Delete the question
+    await db.delete(question)
+    await db.commit()
+    
+    return {
+        "message": "Question deleted successfully",
+        "question_id": question_id,
+        "exam_id": exam_id
+    }
+
+
+# ADDED: Update a specific question
+async def update_question_service(
+    db: AsyncSession, 
+    exam_id: int, 
+    question_id: int, 
+    question_data: QuestionCreateRequest
+):
+    """Update a specific question"""
+    # Check if exam exists
+    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = exam_result.scalar_one_or_none()
+    
+    if not exam:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Exam with id {exam_id} not found"
+        )
+    
+    # Check if question exists and belongs to this exam
+    question_result = await db.execute(
+        select(Question).where(
+            Question.id == question_id,
+            Question.exam_id == exam_id
+        )
+    )
+    question = question_result.scalar_one_or_none()
+    
+    if not question:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Question with id {question_id} not found in exam {exam_id}"
+        )
+    
+    # Update question fields
+    question.q_type = question_data.q_type
+    question.content = question_data.content
+    question.options = question_data.options
+    question.answer_idx = question_data.answer_idx
+    
+    await db.commit()
+    await db.refresh(question)
+    
+    return {
+        "message": "Question updated successfully",
+        "question_id": question.id,
+        "exam_id": exam_id
+    }

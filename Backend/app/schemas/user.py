@@ -1,3 +1,4 @@
+# Backend/app/schemas/user.py
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import date

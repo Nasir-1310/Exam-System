@@ -1,3 +1,4 @@
+# Backend/app/models/enums/role.py
 from sqlalchemy import Enum as SQLAlchemyEnum
 from enum import Enum
 

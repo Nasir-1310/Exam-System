@@ -1,3 +1,4 @@
+# Backend/app/models/__init__.py
 from app.models.user_course import user_course as UserCourseRelation
 from app.models.answer import Answer
 from app.models.course import Course

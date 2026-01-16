@@ -25,7 +25,7 @@ def create_token(*, user_id: Union[int, str, UUID], role: str, expires_delta: Op
         "role": role,
         "iat": int(datetime.now(timezone.utc).timestamp()),
     }
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.token_EXPIRE_MINUTES, days=settings.TOKEN_EXPIRE_DAYS, hours=settings.TOKEN_EXPIRE_HOURS))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES, days=settings.TOKEN_EXPIRE_DAYS, hours=settings.TOKEN_EXPIRE_HOURS))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
