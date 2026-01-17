@@ -1,7 +1,5 @@
-// src/lib/courseData.ts
-// Mock data - Replace with API calls later
-
 import { Course } from "./types";
+import apiService from "./api";
 
 export const MOCK_COURSES: Course[] = [
   {
@@ -54,7 +52,7 @@ export const MOCK_COURSES: Course[] = [
     syllabus: [],
     isEarlyBird: true,
   },
-  {
+    {
     id: "3",
     title: "51 BCS Written Early Bird Batch",
     titleBangla: "রিটেন আর্লি বার্ড ব্যাচ",
@@ -73,7 +71,7 @@ export const MOCK_COURSES: Course[] = [
     description: "বিসিএস রিটেন পরীক্ষার জন্য সম্পূর্ণ প্রস্তুতি কোর্স।",
     syllabus: [],
   },
-  {
+    {
     id: "4",
     title: "50 BCS Model Test Batch",
     titleBangla: "মডেল টেস্ট ব্যাচ",
@@ -92,7 +90,7 @@ export const MOCK_COURSES: Course[] = [
     description: "বিসিএস পরীক্ষার প্রস্তুতির জন্য বিশেষ মডেল টেস্ট ব্যাচ।",
     syllabus: [],
   },
-  {
+    {
     id: "5",
     title: "Bank Job Preli + Written Course 2024",
     titleBangla: "প্রিলি + রিটেন কোর্স ২০২৪",
@@ -112,7 +110,7 @@ export const MOCK_COURSES: Course[] = [
       "সরকারি ও বেসরকারি ব্যাংকের চাকরির পরীক্ষার জন্য সম্পূর্ণ কোর্স।",
     syllabus: [],
   },
-  {
+    {
     id: "6",
     title: "6 AM Club - Productivity Course",
     titleBangla: "প্রোডাক্টিভিটি কোর্স",
@@ -131,7 +129,7 @@ export const MOCK_COURSES: Course[] = [
     description: "পড়াশোনার প্রোডাক্টিভিটি বৃদ্ধির জন্য বিশেষ কোর্স।",
     syllabus: [],
   },
-  {
+    {
     id: "7",
     title: "Medical Admission Course 2024",
     titleBangla: "মেডিকেল ভর্তি কোর্স ২০২৪",
@@ -150,7 +148,7 @@ export const MOCK_COURSES: Course[] = [
     description: "মেডিকেল কলেজে ভর্তির জন্য সম্পূর্ণ প্রস্তুতি কোর্স।",
     syllabus: [],
   },
-  {
+    {
     id: "8",
     title: "Primary Assistant Teacher Course",
     titleBangla: "প্রাইমারি সহকারী শিক্ষক কোর্স",
@@ -169,7 +167,7 @@ export const MOCK_COURSES: Course[] = [
     description: "প্রাইমারি সহকারী শিক্ষক নিয়োগ পরীক্ষার প্রস্তুতি।",
     syllabus: [],
   },
-  {
+    {
     id: "9",
     title: "Free BCS Preparation Basics",
     titleBangla: "ফ্রি বিসিএস প্রস্তুতি বেসিক",
@@ -190,7 +188,7 @@ export const MOCK_COURSES: Course[] = [
     isFeatured: true,
   },
   // Add more courses for pagination testing
-  {
+    {
     id: "10",
     title: "Advanced English for BCS",
     titleBangla: "এডভান্স ইংরেজি কোর্স",
@@ -209,27 +207,38 @@ export const MOCK_COURSES: Course[] = [
 
 // Helper function to get course by ID
 export const getCourseById = (id: string): Course | undefined => {
+  // In a real application, fetch from API
   return MOCK_COURSES.find((course) => course.id === id);
 };
 
-// Get courses filtered by category. If no category provided, returns all courses.
-export const getCoursesByCategory = (category?: string): Course[] => {
-  if (!category) return MOCK_COURSES;
-  return MOCK_COURSES.filter((course) => course.category === category);
+// Get courses filtered by category. Now fetches from API.
+export const getCoursesByCategory = async (category?: string): Promise<Course[]> => {
+  try {
+    const allCourses = await apiService.getAllCourses();
+    if (!category || category === "all") {
+      return allCourses;
+    } else {
+      // Frontend filtering by category, if needed
+      return allCourses.filter((course: any) => course.category === category);
+    }
+  } catch (error) {
+    console.error("Error fetching courses:", error);
+    return [];
+  }
 };
 
 // Return paginated courses, optionally filtered by category.
-export const getPaginatedCourses = (
+export const getPaginatedCourses = async (
   page = 1,
   pageSize = 10,
   category?: string
-): { courses: Course[]; total: number; totalPages: number; page: number } => {
-  const filtered = category ? getCoursesByCategory(category) : MOCK_COURSES;
-  const total = filtered.length;
+): Promise<{ courses: Course[]; total: number; totalPages: number; page: number }> => {
+  const allCourses = await getCoursesByCategory(category);
+  const total = allCourses.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(Math.max(1, page), totalPages);
   const start = (currentPage - 1) * pageSize;
   const end = start + pageSize;
-  const courses = filtered.slice(start, end);
+  const courses = allCourses.slice(start, end);
   return { courses, total, totalPages, page: currentPage };
 };

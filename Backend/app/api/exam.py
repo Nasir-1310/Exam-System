@@ -1,10 +1,12 @@
 # Backend/app/api/exam.py
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
-from app.services.exam_service import *
-from app.schemas.exam import *
+from typing import List, Optional # Added Optional
+from app.services.exam_service import get_all_exams_service, create_exam_service, add_question_to_exam_service, add_mcq_bulk_to_exam_service, get_exam_service, update_exam_service, delete_exam_service, update_question_service, delete_question_service, submit_exam_service, get_detailed_exam_result_service
+from app.services.google_drive_service import google_drive_service
+from app.schemas.exam import ExamCreateRequest, ExamResponse, ExamUpdateRequest, MCQBulkRequest, QuestionCreateRequest
+from app.schemas.result import ResultResponse, ResultDetailedResponse, AnswerCreate
 from app.lib.db import get_db
 from app.utils.jwt import get_current_user
 from app.models.user import User
@@ -29,9 +31,14 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[ExamResponse])
-async def get_all_exams(db: Session = Depends(get_db),):
-	res = await get_all_exams_service(db)
-	return res
+async def get_all_exams(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    course_id: Optional[int] = Query(None)
+):
+    if current_user.role in ["ADMIN", "MODERATOR"] :
+        return await get_all_exams_service(db, user_id=None, course_id=None)
+    return await get_all_exams_service(db, user_id=current_user.id, course_id=course_id)
 
 
 @router.post("/")
@@ -61,13 +68,23 @@ async def add_mcq_bulk_to_exam(exam_id: int, question_request: MCQBulkRequest, d
 
 
 @router.get("/{exam_id}", response_model=ExamResponse)
-async def get_exam(exam_id: int, db: Session = Depends(get_db)):
-	res = await get_exam_service(exam_id, db)
-	return res
+async def get_exam(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role in ["ADMIN", "MODERATOR"]:
+        return await get_exam_service(exam_id, user_id=None, db=db)
+    return await get_exam_service(exam_id, current_user.id, db)
 
 
 @router.put("/{exam_id}")
-async def update_exam(exam_id: int, exam: ExamUpdateRequest, db: Session = Depends(get_db)):
+async def update_exam(
+    exam_id: int,
+    exam: ExamUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+):
 	return await update_exam_service(exam_id, exam, db)
 
 
@@ -105,6 +122,59 @@ async def delete_question(
     return result
 
 
-@router.post("/{exam_id}/submit")
-async def submit_exam(exam_id: int, answers: list[int], db: Session = Depends(get_db)):
-	return submit_exam_service(exam_id, answers, db)
+@router.post("/{exam_id}/submit", response_model=ResultResponse)
+async def submit_exam(
+    exam_id: int,
+    answers: List[AnswerCreate],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return await submit_exam_service(db, exam_id, current_user.id, answers)
+
+
+@router.get("/{exam_id}/result/details", response_model=ResultDetailedResponse)
+async def get_detailed_exam_result(
+    exam_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return await get_detailed_exam_result_service(db, exam_id, current_user.id)
+
+
+@router.post("/upload-image")
+async def upload_image_to_drive(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+):
+    """
+    Upload image to Google Drive and return shareable link
+    """
+    try:
+        # Read file content
+        file_content = await file.read()
+
+        # Upload to Google Drive (mock implementation)
+        shareable_link = await google_drive_service.upload_image(
+            file_content,
+            file.filename,
+            file.content_type
+        )
+
+        if not shareable_link:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to upload image to Google Drive"
+            )
+
+        return {
+            "success": True,
+            "shareable_link": shareable_link,
+            "direct_link": google_drive_service.get_direct_image_url(shareable_link),
+            "filename": file.filename
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Image upload failed: {str(e)}"
+        )

@@ -2,20 +2,24 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
-
-
-class QuestionCreateRequest(BaseModel):
-    q_type: str
-    content: str
-    options: Optional[List[str]] = None
-    answer_idx: Optional[int] = None
+from .question import QuestionCreateRequest
 
 
 class QuestionResponse(BaseModel):
     id: int
     q_type: str
     content: str
+    image_url: Optional[str] = None  # ADDED
+    description: Optional[str] = None  # ADDED - This was missing!
     options: Optional[List[str]] = None
+    option_a: Optional[str] = None  # ADDED
+    option_b: Optional[str] = None  # ADDED
+    option_c: Optional[str] = None  # ADDED
+    option_d: Optional[str] = None  # ADDED
+    option_a_image_url: Optional[str] = None  # ADDED
+    option_b_image_url: Optional[str] = None  # ADDED
+    option_c_image_url: Optional[str] = None  # ADDED
+    option_d_image_url: Optional[str] = None  # ADDED
     answer_idx: Optional[int] = None
     
     class Config:
@@ -29,7 +33,10 @@ class ExamCreateRequest(BaseModel):
     duration_minutes: int = Field(..., gt=0)
     mark: float = Field(..., gt=0)
     minus_mark: float = Field(default=0, ge=0)
-    course_id: Optional[int] = None  # ← FIXED: Now accepts null
+    course_id: Optional[int] = None
+    is_active: bool = Field(default=True)
+    allow_multiple_attempts: bool = Field(default=False)
+    show_detailed_results_after: Optional[datetime] = None
     questions: List[QuestionCreateRequest] = Field(default_factory=list)
     
     class Config:
@@ -62,7 +69,10 @@ class ExamResponse(BaseModel):
     duration_minutes: int
     mark: float
     minus_mark: float
-    course_id: Optional[int] = None  # ← FIXED: Now accepts null
+    course_id: Optional[int] = None
+    is_active: bool
+    allow_multiple_attempts: bool
+    show_detailed_results_after: Optional[datetime] = None
     questions: List[QuestionResponse] = []
     
     class Config:
@@ -76,7 +86,10 @@ class ExamUpdateRequest(BaseModel):
     duration_minutes: Optional[int] = Field(None, gt=0)
     mark: Optional[float] = Field(None, gt=0)
     minus_mark: Optional[float] = Field(None, ge=0)
-    course_id: Optional[int] = None  # ← FIXED: Now accepts null
+    course_id: Optional[int] = None
+    is_active: Optional[bool] = None
+    allow_multiple_attempts: Optional[bool] = None
+    show_detailed_results_after: Optional[datetime] = None
 
 
 class MCQBulkRequest(BaseModel):

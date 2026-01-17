@@ -1,18 +1,73 @@
 // src/app/courses/[courseId]/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getCourseById } from '@/lib/courseData';
 import Link from 'next/link';
+import apiService from '@/lib/api';
+import { Course, Exam } from '@/lib/types';
+import ExamCard from '@/components/exam/ExamCard';
 
 export default function CourseDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const courseId = params.courseId as string;
-  
-  const course = getCourseById(courseId);
+
+  const [course, setCourse] = useState<Course | null>(null);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedSyllabus, setExpandedSyllabus] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const fetchedCourse = await apiService.getCourseById(courseId);
+        setCourse(fetchedCourse);
+        // Assuming fetchedCourse also contains an 'exams' array
+        if (fetchedCourse && fetchedCourse.id) {
+          const fetchedExams = await apiService.getAllExams(parseInt(courseId));
+          setExams(fetchedExams);
+        }
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Failed to fetch course details or exams:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (courseId) {
+      fetchData();
+    }
+  }, [courseId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-600">Loading course details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Link
+            href="/courses"
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Back to courses
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!course) {
     return (
@@ -114,7 +169,7 @@ export default function CourseDetailsPage() {
 
             {/* Course Syllabus */}
             {course.syllabus.length > 0 && (
-              <div className="bg-white rounded-lg shadow-md p-8">
+              <div className="bg-white rounded-lg shadow-md p-8 mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
                   কোর্স সিলেবাস
                 </h2>
@@ -127,9 +182,8 @@ export default function CourseDetailsPage() {
                       >
                         <span className="font-medium text-gray-900">{item.title}</span>
                         <svg
-                          className={`w-5 h-5 text-gray-500 transition-transform ${
-                            expandedSyllabus.includes(item.id) ? 'rotate-180' : ''
-                          }`}
+                          className={`w-5 h-5 text-gray-500 transition-transform ${expandedSyllabus.includes(item.id) ? 'rotate-180' : ''
+                            }`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -154,6 +208,21 @@ export default function CourseDetailsPage() {
                 </div>
               </div>
             )}
+
+            {/* Exams Section */}
+            {exams.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  এই কোর্সের পরীক্ষা
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {exams.map((exam) => (
+                    <ExamCard key={exam.id} exam={exam} isEnrolled={course.isEnrolled} />
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Sidebar */}

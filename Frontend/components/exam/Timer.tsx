@@ -1,28 +1,50 @@
-// components/exam/Timer.tsx
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 
 interface TimerProps {
-  initialSeconds: number;
+  duration: number; // Duration in seconds
   onTimeUp: () => void;
 }
 
-export default function Timer({ initialSeconds, onTimeUp }: TimerProps) {
-  const [timeLeft, setTimeLeft] = useState(initialSeconds);
+export interface TimerRef {
+  start: () => void;
+  stop: () => void;
+  reset: () => void;
+}
+
+const Timer = forwardRef<TimerRef, TimerProps>(({ duration, onTimeUp }, ref) => {
+  const [timeLeft, setTimeLeft] = useState(duration);
+  const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
-    if (timeLeft <= 0) {
+    setTimeLeft(duration);
+  }, [duration]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (isRunning && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && isRunning) {
+      setIsRunning(false);
       onTimeUp();
-      return;
     }
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [timeLeft, isRunning, onTimeUp]);
 
-    return () => clearInterval(timer);
-  }, [timeLeft, onTimeUp]);
+  useImperativeHandle(ref, () => ({
+    start: () => setIsRunning(true),
+    stop: () => setIsRunning(false),
+    reset: () => {
+      setIsRunning(false);
+      setTimeLeft(duration);
+    },
+  }));
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -37,13 +59,13 @@ export default function Timer({ initialSeconds, onTimeUp }: TimerProps) {
   };
 
   const getProgressColor = () => {
-    const percentage = (timeLeft / initialSeconds) * 100;
+    const percentage = (timeLeft / duration) * 100;
     if (percentage < 10) return "bg-red-500";
     if (percentage < 30) return "bg-orange-500";
     return "bg-blue-500";
   };
 
-  const progressPercentage = (timeLeft / initialSeconds) * 100;
+  const progressPercentage = (timeLeft / duration) * 100;
 
   return (
     <div className="text-right">
@@ -60,4 +82,8 @@ export default function Timer({ initialSeconds, onTimeUp }: TimerProps) {
       </div>
     </div>
   );
-}
+});
+
+Timer.displayName = 'Timer';
+
+export default Timer;

@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends
-from app.services.course_service import *
-from app.schemas.course import *
+from fastapi import APIRouter, Depends, Query
+from app.services.course_service import get_all_courses_service, create_course_service, get_course_service, update_course_service, delete_course_service
+from app.schemas.course import CourseCreate, CourseUpdate, CourseResponse
 from sqlalchemy.orm import Session
 from app.lib.db import get_db
+from app.utils.jwt import get_current_user
+from app.models.user import User
+from typing import Optional # Import Optional
 
 
 router = APIRouter(
@@ -11,8 +14,17 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=list[CourseResponse])
-async def get_all_courses(db: Session = Depends(get_db)):
-	return await get_all_courses_service(db)
+async def get_all_courses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    user_id_filter: Optional[int] = Query(None, description="Filter courses by user ID for enrollment status. If not provided, returns all courses.")
+):
+    # For admin/moderator, or if no specific user_id_filter is provided, return all courses.
+    if current_user.role in ["ADMIN", "MODERATOR"] or user_id_filter is None:
+        return await get_all_courses_service(db, user_id=None) # No user-specific filter
+    
+    # For regular users requesting their enrolled courses
+    return await get_all_courses_service(db, user_id=user_id_filter)
 
 
 @router.post("/")

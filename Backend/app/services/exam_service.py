@@ -1,25 +1,44 @@
-# Backend/app/services/exam_service.py
-from app.models import Exam
+from app.models import Exam, Course, UserCourseRelation, Result, Answer
 from app.models.question import Question
-from app.schemas import (
+from app.schemas.exam import (
     ExamCreateRequest, 
     ExamUpdateRequest, 
     QuestionCreateRequest, 
     MCQBulkRequest
 )
+from app.schemas.result import ResultCreate # Corrected import path
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
-from typing import List
+from typing import List, Optional
+from datetime import datetime
 
 
-async def get_all_exams_service(db: AsyncSession) -> List[Exam]:
-    """Get all exams with questions"""
-    result = await db.execute(
-        select(Exam).options(selectinload(Exam.questions))
-    )
-    return result.scalars().all()
+async def get_all_exams_service(db: AsyncSession, user_id: Optional[int], course_id: Optional[int] = None) -> List[Exam]:
+    """Get all exams with questions filtered by user enrollment and optional course_id (for non-admins)"""
+    query = select(Exam).options(selectinload(Exam.questions))
+    print(f"[DEBUG] get_all_exams_service - Initial query: {query}")
+    
+    if user_id is not None:
+        # For regular users, filter by enrollment and active status
+        query = query.outerjoin(Course, Exam.course_id == Course.id).outerjoin(UserCourseRelation, UserCourseRelation.c.Course_id == Course.id)
+        query = query.where(UserCourseRelation.c.User_id == user_id)
+        
+        if course_id:
+            query = query.where(Exam.course_id == course_id)
+        
+        query = query.where(Exam.is_active == True)
+        print(f"[DEBUG] get_all_exams_service - Query for user {user_id}: {query}")
+    else:
+        # For admins, no user-specific filters, retrieve all exams
+        # No joins on Course/UserCourseRelation needed here for admin view
+        print(f"[DEBUG] get_all_exams_service - Query for admin (all exams): {query}")
+
+    result = await db.execute(query)
+    exams = result.scalars().unique().all()
+    print(f"[DEBUG] get_all_exams_service - Fetched {len(exams)} exams.")
+    return exams
 
 
 async def add_question_to_exam_service(
@@ -40,7 +59,17 @@ async def add_question_to_exam_service(
         exam_id=exam_id,
         q_type=question.q_type,
         content=question.content,
+        image_url=question.image_url,
+        description=question.description,
         options=question.options,
+        option_a=question.option_a,
+        option_b=question.option_b,
+        option_c=question.option_c,
+        option_d=question.option_d,
+        option_a_image_url=question.option_a_image_url,
+        option_b_image_url=question.option_b_image_url,
+        option_c_image_url=question.option_c_image_url,
+        option_d_image_url=question.option_d_image_url,
         answer_idx=question.answer_idx
     )
     
@@ -112,18 +141,39 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
         )
 
 
-async def get_exam_service(exam_id: int, db: AsyncSession) -> Exam:
-    """Get exam by ID with questions"""
-    result = await db.execute(
-        select(Exam)
-        .options(selectinload(Exam.questions))
-        .where(Exam.id == exam_id)
-    )
-    exam = result.scalar_one_or_none()
-    
+async def get_exam_service(exam_id: int, user_id: Optional[int], db: AsyncSession) -> Exam:
+    """Get exam by ID with questions, ensuring user is enrolled in the associated course (if not admin)"""
+    # Use outerjoin to include exams even if they don't have an associated course
+    query = select(Exam).options(selectinload(Exam.questions))
+
+    # If it's a regular user, try to join with Course to check enrollment. 
+    # For admins (user_id is None), we don't need to join with Course for filtering.
+    if user_id is not None:
+        query = query.outerjoin(Course, Exam.course_id == Course.id)
+
+    query = query.where(Exam.id == exam_id)
+    result = await db.execute(query)
+    exam = result.scalars().first()
+
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
-    
+
+    # Only perform enrollment check if user_id is provided (i.e., not an admin/moderator)
+    # and if the exam actually has a course_id
+    if user_id is not None and exam.course_id is not None:
+        # Check if the user is enrolled in the course associated with this exam
+        user_course_check = await db.execute(
+            select(UserCourseRelation).where(
+                UserCourseRelation.c.User_id == user_id,
+                UserCourseRelation.c.Course_id == exam.course_id
+            )
+        )
+        if user_course_check.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User not enrolled in the course for this exam"
+            )
+
     return exam
 
 
@@ -150,15 +200,157 @@ async def update_exam_service(
 
 async def delete_exam_service(exam_id: int, db: AsyncSession) -> bool:
     """Delete exam"""
+    # Defensive import for func in case module-level import is not working consistently
+    from sqlalchemy import func
+
     result = await db.execute(select(Exam).where(Exam.id == exam_id))
     exam = result.scalar_one_or_none()
     
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
     
-    db.delete(exam)
+    # Add debug prints
+    print(f"[DEBUG] Attempting to delete exam with ID: {exam_id}")
+
+    # Check for associated questions or results
+    questions_count = await db.scalar(select(func.count(Question.id)).where(Question.exam_id == exam_id))
+    results_count = await db.scalar(select(func.count(Result.id)).where(Result.exam_id == exam_id))
+
+    if questions_count > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete exam: it has associated questions.")
+    if results_count > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete exam: it has associated results.")
+
+    await db.delete(exam)
+    print(f"[DEBUG] Exam {exam_id} marked for deletion. Committing...")
     await db.commit()
+    print(f"[DEBUG] Exam {exam_id} deletion committed.")
     return True
+
+
+async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answers: List[dict]) -> Result:
+    """Submit exam answers, calculate score, and store detailed results."""
+    exam = await db.execute(select(Exam).options(selectinload(Exam.questions)).where(Exam.id == exam_id))
+    exam = exam.scalars().first()
+
+    if not exam:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found")
+
+    # Check if user is allowed to take this exam (already handled by get_exam_service, but good to re-check)
+    user_course_check = await db.execute(
+        select(UserCourseRelation).where(
+            UserCourseRelation.c.User_id == user_id,
+            UserCourseRelation.c.Course_id == exam.course_id
+        )
+    )
+    if user_course_check.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User not enrolled in the course for this exam"
+        )
+
+    # Check for multiple attempts
+    if not exam.allow_multiple_attempts:
+        existing_result = await db.execute(select(Result).where(Result.exam_id == exam_id, Result.user_id == user_id))
+        if existing_result.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Multiple attempts not allowed for this exam")
+
+    correct_answers_count = 0
+    incorrect_answers_count = 0
+    total_mark_obtained = 0.0
+    detailed_answers = []
+
+    for submitted_answer in answers:
+        question_id = submitted_answer.question_id
+        selected_option = submitted_answer.selected_option # For MCQ
+        submitted_answer_text = submitted_answer.submitted_answer_text # For Written
+
+        question = next((q for q in exam.questions if q.id == question_id), None)
+        if not question:
+            continue # Skip if question not found in exam
+
+        is_correct = False
+        marks_for_question = 0.0
+
+        if question.q_type == "MCQ":
+            if selected_option is not None and question.answer_idx is not None and selected_option == question.answer_idx:
+                is_correct = True
+                marks_for_question = float(exam.mark) / len(exam.questions) # Assuming equal marks per question for now
+            else:
+                is_correct = False
+                marks_for_question = -float(exam.minus_mark)
+            correct_option_index = question.answer_idx
+        else: # For written/other types, correctness and marks determined by admin later
+            is_correct = None # Cannot determine automatically
+            marks_for_question = 0.0 # Will be graded later
+            correct_option_index = None
+
+        if is_correct is True:
+            correct_answers_count += 1
+        elif is_correct is False:
+            incorrect_answers_count += 1
+        
+        total_mark_obtained += marks_for_question
+
+        detailed_answers.append(
+            Answer(
+                question_id=question_id,
+                exam_id=exam_id,
+                selected_option=selected_option,
+                submitted_answer_text=submitted_answer_text,
+                is_correct=is_correct,
+                correct_option_index=correct_option_index,
+                marks_obtained=marks_for_question
+            )
+        )
+
+    # Determine attempt number
+    last_attempt_result = await db.execute(
+        select(Result)
+        .where(Result.exam_id == exam_id, Result.user_id == user_id)
+        .order_by(Result.attempt_number.desc())
+        .limit(1)
+    )
+    last_attempt = last_attempt_result.scalar_one_or_none()
+    attempt_number = (last_attempt.attempt_number + 1) if last_attempt else 1
+
+    result_obj = Result(
+        exam_id=exam_id,
+        user_id=user_id,
+        correct_answers=correct_answers_count,
+        incorrect_answers=incorrect_answers_count,
+        mark=total_mark_obtained,
+        attempt_number=attempt_number,
+        answers_details=detailed_answers
+    )
+
+    db.add(result_obj)
+    await db.commit()
+    await db.refresh(result_obj)
+    return result_obj
+
+
+async def get_detailed_exam_result_service(db: AsyncSession, exam_id: int, user_id: int) -> ResultDetailedResponse:
+    """Get detailed exam results for a user, with answers revealed after a certain time."""
+    # Get the latest result for the user for this exam
+    result_query = select(Result).options(selectinload(Result.answers_details)).options(selectinload(Result.exam).selectinload(Exam.questions))
+    result_query = result_query.where(Result.exam_id == exam_id, Result.user_id == user_id)
+    result_query = result_query.order_by(Result.attempt_number.desc())
+    latest_result = await db.execute(result_query)
+    result_obj = latest_result.scalars().first()
+
+    if not result_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Result not found for this user and exam")
+
+    # Check if detailed results can be shown
+    now = datetime.utcnow()
+    if result_obj.exam.show_detailed_results_after and now < result_obj.exam.show_detailed_results_after:
+        # If not time to show detailed results, hide them
+        for answer in result_obj.answers_details:
+            answer.is_correct = None
+            answer.correct_option_index = None
+
+    return result_obj
 
 
 # ============= NEW FUNCTIONS ADDED BELOW =============
@@ -191,6 +383,12 @@ async def delete_question_service(db: AsyncSession, exam_id: int, question_id: i
             detail=f"Question with id {question_id} not found in exam {exam_id}"
         )
     
+    # Delete associated answers first (to avoid foreign key constraint errors)
+    from sqlalchemy import delete
+    await db.execute(
+        delete(Answer).where(Answer.question_id == question_id)
+    )
+
     # Delete the question
     await db.delete(question)
     await db.commit()
@@ -238,7 +436,17 @@ async def update_question_service(
     # Update question fields
     question.q_type = question_data.q_type
     question.content = question_data.content
+    question.image_url = question_data.image_url
+    question.description = question_data.description
     question.options = question_data.options
+    question.option_a = question_data.option_a
+    question.option_b = question_data.option_b
+    question.option_c = question_data.option_c
+    question.option_d = question_data.option_d
+    question.option_a_image_url = question_data.option_a_image_url
+    question.option_b_image_url = question_data.option_b_image_url
+    question.option_c_image_url = question_data.option_c_image_url
+    question.option_d_image_url = question_data.option_d_image_url
     question.answer_idx = question_data.answer_idx
     
     await db.commit()

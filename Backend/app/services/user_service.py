@@ -1,7 +1,7 @@
 # Backend/app/services/user_service.py
-from app.models import User
+from app.models import User, Course, UserCourseRelation
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, insert
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from app.schemas import RegisterRequest
@@ -68,6 +68,33 @@ async def create_user(db: AsyncSession, payload: RegisterRequest):
 
 
 # ========== ADD THESE NEW FUNCTIONS BELOW ==========
+
+async def enroll_user_in_course(db: AsyncSession, user_id: int, course_id: int):
+    """Enroll a user in a course"""
+    # Check if user and course exist
+    user = await db.execute(select(User).where(User.id == user_id))
+    if not user.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with ID {user_id} not found")
+
+    course = await db.execute(select(Course).where(Course.id == course_id))
+    if not course.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Course with ID {course_id} not found")
+
+    # Check if already enrolled
+    existing_enrollment = await db.execute(
+        select(UserCourseRelation).where(
+            UserCourseRelation.c.User_id == user_id,
+            UserCourseRelation.c.Course_id == course_id
+        )
+    )
+    if existing_enrollment.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already enrolled in this course")
+
+    # Enroll user
+    await db.execute(UserCourseRelation.insert().values(User_id=user_id, Course_id=course_id))
+    await db.commit()
+    return {"message": f"User {user_id} enrolled in course {course_id}"}
+
 
 async def get_all_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
     """Get all users with pagination"""

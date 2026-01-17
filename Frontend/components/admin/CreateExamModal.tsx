@@ -1,7 +1,7 @@
 // Frontend/components/admin/CreateExamModal.tsx
 
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import apiService from '@/lib/api';
 
 interface CreateExamModalProps {
@@ -9,7 +9,14 @@ interface CreateExamModalProps {
   onSuccess: () => void;
 }
 
+interface Course {
+  id: number;
+  title: string;
+  description: string;
+}
+
 export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalProps) {
+  const [courses, setCourses] = useState<Course[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -17,9 +24,24 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
     duration_minutes: 60,
     mark: 100,
     minus_mark: 0.25,
+    course_id: '',
+    allow_multiple_attempts: false,
+    show_detailed_results_after: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const coursesData = await apiService.getAllCourses();
+        setCourses(coursesData);
+      } catch (err) {
+        console.error('Failed to load courses:', err);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,11 +49,15 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
     setError('');
 
     try {
-      await apiService.createExam({
+      const submitData = {
         ...formData,
-        course_id: null,
+        course_id: formData.course_id ? parseInt(formData.course_id) : null,
+        is_active: true,
         questions: [],
-      });
+        show_detailed_results_after: formData.show_detailed_results_after || null,
+      };
+
+      await apiService.createExam(submitData);
       alert('পরীক্ষা সফলভাবে তৈরি হয়েছে!');
       onSuccess();
     } catch (err: any) {
@@ -42,13 +68,23 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg max-w-2xl w-full p-4 sm:p-6 my-8">
-        <div className="flex justify-between items-center mb-4 sm:mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">নতুন পরীক্ষা তৈরি করুন</h2>
-          <button 
-            onClick={onClose} 
-            className="text-gray-400 hover:text-gray-600 p-1"
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 my-8 border border-gray-100">
+        <div className="flex justify-between items-center mb-6 sm:mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">নতুন পরীক্ষা তৈরি করুন</h2>
+              <p className="text-sm text-gray-600 mt-1">পরীক্ষার বিস্তারিত তথ্য পূরণ করুন</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors duration-200"
             type="button"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +93,7 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-sm">
               {error}
@@ -88,6 +124,37 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">কোর্স নির্বাচন (ঐচ্ছিক)</label>
+            <select
+              value={formData.course_id}
+              onChange={(e) => setFormData({ ...formData, course_id: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 text-sm sm:text-base"
+            >
+              <option value="">কোনো কোর্স নির্বাচন করবেন না</option>
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.title}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">এই পরীক্ষাটি কোন কোর্সের সাথে যুক্ত হবে</p>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="allow_multiple_attempts"
+              checked={formData.allow_multiple_attempts}
+              onChange={(e) => setFormData({ ...formData, allow_multiple_attempts: e.target.checked })}
+              className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="allow_multiple_attempts" className="ml-2 block text-sm text-gray-900">
+              একাধিকবার অংশগ্রহণের অনুমতি দিন
+            </label>
+          </div>
+          <p className="text-xs text-gray-500 -mt-2 mb-4">চেক করলে ছাত্ররা একাধিকবার পরীক্ষা দিতে পারবে</p>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">শুরুর তারিখ ও সময় *</label>
@@ -98,6 +165,18 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
                 onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 text-sm sm:text-base"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">বিস্তারিত উত্তর প্রকাশের সময়</label>
+              <input
+                type="datetime-local"
+                value={formData.show_detailed_results_after}
+                onChange={(e) => setFormData({ ...formData, show_detailed_results_after: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 text-sm sm:text-base"
+                placeholder="যদি ফাঁকা রাখেন, কখনো দেখানো হবে না"
+              />
+              <p className="text-xs text-gray-500 mt-1">এই সময়ের পর ছাত্ররা সঠিক উত্তর দেখতে পাবে</p>
             </div>
 
             <div>
@@ -138,20 +217,32 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
             </div>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm sm:text-base"
+              className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 text-sm font-medium"
             >
               বাতিল করুন
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+              className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-sm font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center"
             >
-              {loading ? 'তৈরি হচ্ছে...' : 'পরীক্ষা তৈরি করুন'}
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  তৈরি হচ্ছে...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  পরীক্ষা তৈরি করুন
+                </>
+              )}
             </button>
           </div>
         </form>

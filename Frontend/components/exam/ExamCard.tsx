@@ -1,25 +1,32 @@
-// components/exam/ExamCard.tsx
 import Link from "next/link";
+import { Exam } from '@/lib/types';
+import { isExamActive } from '@/lib/utils'; // Assuming a utility to check exam status
 
 interface ExamCardProps {
-  id: number;
-  title: string;
-  description: string;
-  duration_minutes: number;
-  total_marks: number;
-  is_premium: boolean;
-  isLoggedIn?: boolean;
+  exam: Exam; // Pass the entire exam object
+  isEnrolled: boolean;
 }
 
 export default function ExamCard({
-  id,
-  title,
-  description,
-  duration_minutes,
-  total_marks,
-  is_premium,
-  isLoggedIn = false,
+  exam,
+  isEnrolled = false,
 }: ExamCardProps) {
+  const isLoggedIn = typeof window !== 'undefined' && (localStorage.getItem('token') || document.cookie.includes('token'));
+  const { id, title, description, duration_minutes, mark, is_premium, is_active, start_time } = exam;
+
+  const canTakeExam = isLoggedIn && isEnrolled && is_active && new Date(start_time) <= new Date();
+
+  let disabledMessage = "";
+  if (!isLoggedIn) {
+    disabledMessage = "Login Required";
+  } else if (!isEnrolled) {
+    disabledMessage = "Enroll in Course to Take Exam";
+  } else if (!is_active) {
+    disabledMessage = "Exam Not Yet Active";
+  } else if (new Date(start_time) > new Date()) {
+    disabledMessage = `Exam starts on ${new Date(start_time).toLocaleString()}`;
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
       <div className="flex justify-between items-start mb-4">
@@ -65,16 +72,16 @@ export default function ExamCard({
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <span>{total_marks} marks</span>
+          <span>{mark} marks</span>
         </div>
       </div>
 
-      {is_premium && !isLoggedIn ? (
+      {!canTakeExam ? (
         <button
           disabled
           className="w-full bg-gray-300 text-gray-500 py-2 rounded-lg font-medium cursor-not-allowed"
         >
-          Login Required
+          {disabledMessage}
         </button>
       ) : (
         <Link

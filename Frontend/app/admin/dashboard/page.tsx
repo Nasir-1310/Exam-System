@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import apiService from '@/lib/api';
 import CreateExamModal from '@/components/admin/CreateExamModal';
 import AddQuestionModal from '@/components/admin/AddQuestionModal';
+import BulkQuestionUploadModal from '@/components/admin/BulkQuestionUploadModal';
 import ExamDetailModal from '@/components/admin/ExamDetailModal';
 
 interface Exam {
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showExamDetailModal, setShowExamDetailModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
 
@@ -71,8 +73,8 @@ export default function AdminDashboard() {
 
     try {
       await apiService.deleteExam(examId);
-      setExams(prevExams => prevExams.filter(exam => exam.id !== examId));
       alert('পরীক্ষা সফলভাবে মুছে ফেলা হয়েছে');
+      loadExams(); // Re-fetch exams after successful deletion
     } catch (error: any) {
       alert(error.message || 'পরীক্ষা মুছে ফেলতে ব্যর্থ');
     }
@@ -242,15 +244,26 @@ export default function AdminDashboard() {
                       >
                         বিস্তারিত দেখুন
                       </button>
-                      <button
-                        onClick={() => {
-                          setSelectedExam(exam);
-                          setShowAddQuestionModal(true);
-                        }}
-                        className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
-                      >
-                        প্রশ্ন যোগ করুন
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedExam(exam);
+                            setShowAddQuestionModal(true);
+                          }}
+                          className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                        >
+                          প্রশ্ন যোগ করুন
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedExam(exam);
+                            setShowBulkUploadModal(true);
+                          }}
+                          className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                        >
+                          বাল্ক আপলোড
+                        </button>
+                      </div>
                       <button
                         onClick={() => handleDeleteExam(exam.id)}
                         className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
@@ -285,6 +298,21 @@ export default function AdminDashboard() {
           }}
           onSuccess={() => {
             setShowAddQuestionModal(false);
+            setSelectedExam(null);
+            loadExams();
+          }}
+        />
+      )}
+
+      {showBulkUploadModal && selectedExam && (
+        <BulkQuestionUploadModal
+          exam={selectedExam}
+          onClose={() => {
+            setShowBulkUploadModal(false);
+            setSelectedExam(null);
+          }}
+          onSuccess={() => {
+            setShowBulkUploadModal(false);
             setSelectedExam(null);
             loadExams();
           }}

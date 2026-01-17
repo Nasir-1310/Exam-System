@@ -1,205 +1,238 @@
-// app/exam/mcq/[examId]/page.tsx
-"use client";
+// Frontend/app/exam/mcq/[examId]/page.tsx
+'use client';
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { getExamById, getQuestionsByExamId } from "@/lib/mockExamData";
-import Timer from "@/components/exam/Timer";
-import QuestionCard from "@/components/exam/QuestionCard";
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import apiService from '@/lib/api';
+import { Exam, Question, Answer } from '@/lib/types';
+import QuestionCard from '@/components/exam/QuestionCard';
+import Timer from '@/components/exam/Timer';
+import Swal from 'sweetalert2';
 
-export default function MCQExamTakingPage() {
+export default function MCQExamPage() {
   const params = useParams();
   const router = useRouter();
   const examId = parseInt(params.examId as string);
 
-  const exam = getExamById(examId);
-  const questions = getQuestionsByExamId(examId);
+  const [exam, setExam] = useState<Exam | null>(null);
+  const [userAnswers, setUserAnswers] = useState<Map<number, Answer>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<any>(null);
 
-  const [answers, setAnswers] = useState<{ [key: number]: number }>({});
-  const [showSubmitWarning, setShowSubmitWarning] = useState(false);
+  useEffect(() => {
+    const fetchExam = async () => {
+      try {
+        setLoading(true);
+        const fetchedExam = await apiService.getExamById(examId);
+        setExam(fetchedExam);
 
-  if (!exam || questions.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-gray-600">Exam not found</p>
-      </div>
-    );
-  }
+        if (!fetchedExam.is_active) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Exam Not Available',
+            text: 'This exam is not active.',
+            confirmButtonText: 'Go Back',
+          }).then(() => {
+            router.push('/exam');
+          });
+          return;
+        }
 
-  const handleAnswerSelect = (questionId: number, optionIndex: number) => {
-    setAnswers({
-      ...answers,
-      [questionId]: optionIndex,
+        if (new Date(fetchedExam.start_time) > new Date()) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Exam Not Started',
+            text: 'This exam has not started yet.',
+            confirmButtonText: 'Go Back',
+          }).then(() => {
+            router.push('/exam');
+          });
+          return;
+        }
+        timerRef.current?.start(); // Start the timer here
+
+      } catch (err: any) {
+        setError(err.message);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: err.message || 'Failed to fetch exam.',
+          confirmButtonText: 'Go Back',
+        }).then(() => {
+          router.back();
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (examId) {
+      fetchExam();
+    }
+  }, [examId, router]);
+
+  const handleAnswerChange = (questionId: number, selectedOption: number | null, submittedAnswerText: string | null = null) => {
+    setUserAnswers(prev => {
+      const newAnswers = new Map(prev);
+      newAnswers.set(questionId, { question_id: questionId, selected_option: selectedOption, submitted_answer_text: submittedAnswerText });
+      return newAnswers;
     });
   };
 
-  const submitExam = () => {
-    let correctCount = 0;
-    let wrongCount = 0;
 
-    questions.forEach((q) => {
-      const userAnswer = answers[q.id];
-      if (userAnswer !== undefined) {
-        if (userAnswer === q.answer_idx) {
-          correctCount++;
-        } else {
-          wrongCount++;
+  const handleSubmitExam = async () => {
+    const unansweredCount = exam.questions.length - answeredQuestions;
+
+    const confirmText = unansweredCount > 0
+      ? `আপনি ${unansweredCount}টি প্রশ্নের উত্তর দেননি। এগিয়ে যেতে চান?`
+      : "আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?";
+
+    Swal.fire({
+      title: 'নিশ্চিত করুন',
+      text: confirmText,
+      icon: unansweredCount > 0 ? 'warning' : 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'হ্যাঁ, জমা দিন',
+      cancelButtonText: 'বাতিল'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          setLoading(true);
+          const answersArray = Array.from(userAnswers.values());
+          const resultData = await apiService.submitExam(examId, answersArray);
+          Swal.fire(
+            'জমা হয়েছে!',
+            'আপনার পরীক্ষা সফলভাবে জমা হয়েছে।',
+            'success'
+          );
+          router.push(`/exam/mcq/result/${examId}`);
+        } catch (err: any) {
+          setError(err.message);
+          Swal.fire({
+            icon: 'error',
+            title: 'জমা করা ব্যর্থ',
+            text: err.message || 'পরীক্ষা জমা করতে ব্যর্থ।',
+          });
+        } finally {
+          setLoading(false);
         }
       }
     });
-
-    const totalMark = correctCount * 1 + wrongCount * -0.25;
-
-    sessionStorage.setItem(
-      `exam_result_${examId}`,
-      JSON.stringify({
-        correctCount,
-        wrongCount,
-        skipped: questions.length - Object.keys(answers).length,
-        totalMark: totalMark.toFixed(2),
-        answers,
-      })
-    );
-
-    router.push(`/exam/mcq/result/${examId}`);
   };
 
-  const handleSubmit = () => {
-    const answeredCount = Object.keys(answers).length;
-    if (answeredCount < questions.length) {
-      setShowSubmitWarning(true);
-      return;
-    }
-    submitExam();
-  };
+  if (loading) {
+    return <div className="container mx-auto p-4 text-center">Loading exam...</div>;
+  }
 
-  const answeredCount = Object.keys(answers).length;
+  if (error) {
+    return <div className="container mx-auto p-4 text-red-500 text-center">Error: {error}</div>;
+  }
 
-  // Function to scroll to specific question
-  const scrollToQuestion = (index: number) => {
-    const element = document.getElementById(`question-${index}`);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  };
+  if (!exam || exam.questions.length === 0) {
+    return <div className="container mx-auto p-4 text-center">No exam or questions found.</div>;
+  }
+
+  const answeredQuestions = exam.questions.filter(q => userAnswers.has(q.id)).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 pt-20">
-      <div className="max-w-5xl mx-auto">
-        {/* Header - Sticky */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6 sticky top-16 z-40">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
-              <p className="text-sm text-gray-600">
-                Total Questions: {questions.length}
-              </p>
-            </div>
-            <Timer
-              initialSeconds={exam.duration_minutes * 60}
-              onTimeUp={submitExam}
-            />
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-100 py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">{exam.title}</h1>
+        <p className="text-gray-600 text-center mb-8">{exam.description}</p>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* All Questions Panel */}
-          <div className="lg:col-span-3 space-y-6">
-            {questions.map((question, index) => (
-              <div key={question.id} id={`question-${index}`}>
-                <QuestionCard
-                  questionNumber={index + 1}
-                  content={question.content}
-                  options={question.options}
-                  selectedAnswer={answers[question.id]}
-                  onAnswerSelect={(optionIndex) =>
-                    handleAnswerSelect(question.id, optionIndex)
-                  }
-                />
-              </div>
-            ))}
-
-            {/* Submit Button */}
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={handleSubmit}
-                className="px-8 py-3 bg-green-600 text-white font-medium text-lg rounded-lg hover:bg-green-700 shadow-lg"
-              >
-                Submit Exam
-              </button>
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center space-x-4">
+              <h2 className="text-xl font-semibold">পরীক্ষা প্রশ্নসমূহ</h2>
+              <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                উত্তর দেওয়া: {answeredQuestions}/{exam.questions.length}
+              </span>
             </div>
+            {exam.duration_minutes > 0 && (
+              <Timer
+                duration={exam.duration_minutes * 60} // Convert minutes to seconds
+                onTimeUp={handleSubmitExam}
+                ref={timerRef}
+              />
+            )}
           </div>
 
-          {/* Question Navigator */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4 sticky top-44">
-              <h3 className="font-semibold text-gray-900 mb-4">Questions</h3>
-              <div className="grid grid-cols-5 gap-2 mb-4">
-                {questions.map((q, index) => (
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+            <div
+              className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+              style={{ width: `${(answeredQuestions / exam.questions.length) * 100}%` }}
+            ></div>
+          </div>
+          <p className="text-sm text-gray-600 text-center">
+            {Math.round((answeredQuestions / exam.questions.length) * 100)}% সম্পন্ন
+          </p>
+
+          {/* Question Navigation */}
+          <div className="mt-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">প্রশ্ন নেভিগেশন:</p>
+            <div className="flex flex-wrap gap-2">
+              {exam.questions.map((question, index) => {
+                const isAnswered = userAnswers.has(question.id);
+                return (
                   <button
-                    key={q.id}
-                    onClick={() => scrollToQuestion(index)}
-                    className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
-                      answers[q.id] !== undefined
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    key={question.id}
+                    onClick={() => {
+                      const element = document.getElementById(`question-${question.id}`);
+                      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }}
+                    className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                      isAnswered
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                   >
                     {index + 1}
                   </button>
-                ))}
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span className="text-gray-700">
-                    Answered ({answeredCount})
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                  <span className="text-gray-700">
-                    Not Answered ({questions.length - answeredCount})
-                  </span>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
+        </div>
+
+        <div className="space-y-6">
+          {exam.questions.map((question, index) => {
+            const selectedAnswer = userAnswers.get(question.id);
+            return (
+              <div key={question.id} id={`question-${question.id}`} className="bg-white rounded-lg shadow-lg p-6">
+                <div className="flex items-start mb-4">
+                  <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-4 flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">{question.content}</h3>
+                    <QuestionCard
+                      question={question}
+                      selectedOption={selectedAnswer?.selected_option}
+                      submittedAnswerText={selectedAnswer?.submitted_answer_text}
+                      onAnswerChange={(selectedOption, submittedAnswerText) =>
+                        handleAnswerChange(question.id, selectedOption, submittedAnswerText)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-center mt-8">
+          <button
+            onClick={handleSubmitExam}
+            className="px-8 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors text-lg shadow-lg"
+          >
+            পরীক্ষা জমা দিন
+          </button>
         </div>
       </div>
-
-      {/* Submit Warning Modal */}
-      {showSubmitWarning && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Are you sure?
-            </h3>
-            <p className="text-gray-600 mb-4">
-              You have {questions.length - answeredCount} unanswered questions.
-              Do you want to submit anyway?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowSubmitWarning(false)}
-                className="flex-1 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowSubmitWarning(false);
-                  submitExam();
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
