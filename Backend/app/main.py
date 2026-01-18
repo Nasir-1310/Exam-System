@@ -1,25 +1,25 @@
 # Backend/app/main.py
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import logging
+import os
+from pathlib import Path
 
-# Load environment variables first
 load_dotenv()
 
+from app.api import upload
 from app.lib.config import settings
 
-# Configure logging
 logging.getLogger('passlib').setLevel(logging.ERROR)
 
-# Create FastAPI app
 app = FastAPI(
     title="BCS Exam System API",
     description="API for BCS Exam System Application",
     version="1.0.0",
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -28,7 +28,6 @@ app.add_middleware(
     allow_headers=settings.ALLOWED_HEADERS,
 )
 
-# Import routers AFTER app is created
 from app.api import (
     test_router,
     auth_router,
@@ -43,7 +42,14 @@ app.include_router(auth_router)
 app.include_router(exam_router)
 app.include_router(course_router)
 app.include_router(user_router)
+app.include_router(upload.router)  # ✅ No prefix needed - already in router
 
+# ✅ Mount static files AFTER including routers
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
+uploads_path = BACKEND_ROOT / "uploads"
+uploads_path.mkdir(parents=True, exist_ok=True)
+
+app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
 
 if __name__ == "__main__":
     import uvicorn

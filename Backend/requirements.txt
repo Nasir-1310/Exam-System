@@ -45,3 +45,6 @@ starlette==0.50.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.38.0
+
+python-multipart>=0.0.6
+# boto3>=1.26.0  # Uncomment for AWS S3

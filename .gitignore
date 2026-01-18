@@ -157,3 +157,14 @@ Thumbs.db
 # Frontend/package-lock.json
 # Frontend/yarn.lock
 # Backend/requirements.txt
+
+
+# Uploaded question images (not tracked in git)
+/public/questions/*.jpg
+/public/questions/*.jpeg
+/public/questions/*.png
+/public/questions/*.gif
+/public/questions/*.webp
+
+# But keep the folder structure
+!/public/questions/.gitkeep

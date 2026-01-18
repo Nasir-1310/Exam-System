@@ -29,14 +29,14 @@ class QuestionResponse(BaseModel):
 class ExamCreateRequest(BaseModel):
     title: str = Field(..., min_length=3, max_length=255)
     description: Optional[str] = None
-    start_time: datetime
+    start_time: str  # Accept as string and parse in service
     duration_minutes: int = Field(..., gt=0)
     mark: float = Field(..., gt=0)
     minus_mark: float = Field(default=0, ge=0)
     course_id: Optional[int] = None
     is_active: bool = Field(default=True)
     allow_multiple_attempts: bool = Field(default=False)
-    show_detailed_results_after: Optional[datetime] = None
+    show_detailed_results_after: Optional[str] = None  # Accept as string
     questions: List[QuestionCreateRequest] = Field(default_factory=list)
     
     class Config:

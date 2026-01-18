@@ -74,6 +74,54 @@ class ApiService {
     return headers;
   }
 
+  // ============================================================================
+  // IMAGE UPLOAD - ADDED FOR PC IMAGE UPLOAD FUNCTIONALITY
+  // ============================================================================
+  /**
+   * Uploads a question image from PC to the server
+   * 
+   * Current Implementation: Stores in Frontend/public/questions folder
+   * 
+   * 🔄 FUTURE AWS S3 INTEGRATION:
+   * When migrating to AWS S3, modify the backend endpoint to upload to S3
+   * and return the S3 URL. This frontend method will remain unchanged.
+   * 
+   * @param file - Image file from user's PC
+   * @returns Public URL of the uploaded image
+   */
+  async uploadQuestionImage(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Get token for authentication
+    const token = typeof window !== 'undefined' 
+      ? (localStorage.getItem('token') || getCookie('token'))
+      : null;
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // NOTE: Don't set Content-Type header - browser will set it automatically with boundary for multipart/form-data
+    const response = await fetch(`${API_BASE_URL}/upload/question-image`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Failed to upload image');
+    }
+
+    const data = await response.json();
+    return data.url; // Returns public URL (e.g., /questions/abc123.jpg)
+  }
+  // ============================================================================
+  // END IMAGE UPLOAD
+  // ============================================================================
+
   // Auth APIs
   async login(credentials: LoginCredentials): Promise<TokenResponse> {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {

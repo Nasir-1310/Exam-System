@@ -1,9 +1,10 @@
 from app.models import Exam, Course, UserCourseRelation, Result, Answer
 from app.models.question import Question
+from app.utils.google_drive import validate_and_convert_image_url, convert_google_drive_url
 from app.schemas.exam import (
     ExamCreateRequest, 
     ExamUpdateRequest, 
-    QuestionCreateRequest, 
+    QuestionCreateRequest,
     MCQBulkRequest
 )
 from app.schemas.result import ResultCreate # Corrected import path
@@ -41,44 +42,6 @@ async def get_all_exams_service(db: AsyncSession, user_id: Optional[int], course
     return exams
 
 
-async def add_question_to_exam_service(
-    db: AsyncSession,
-    exam_id: int,
-    question: QuestionCreateRequest
-):
-    """Add a single question to exam"""
-    # Verify exam exists
-    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
-    exam = exam_result.scalar_one_or_none()
-    
-    if not exam:
-        raise HTTPException(status_code=404, detail="Exam not found")
-    
-    # Create question
-    question_obj = Question(
-        exam_id=exam_id,
-        q_type=question.q_type,
-        content=question.content,
-        image_url=question.image_url,
-        description=question.description,
-        options=question.options,
-        option_a=question.option_a,
-        option_b=question.option_b,
-        option_c=question.option_c,
-        option_d=question.option_d,
-        option_a_image_url=question.option_a_image_url,
-        option_b_image_url=question.option_b_image_url,
-        option_c_image_url=question.option_c_image_url,
-        option_d_image_url=question.option_d_image_url,
-        answer_idx=question.answer_idx
-    )
-    
-    db.add(question_obj)
-    await db.commit()
-    await db.refresh(question_obj)
-    return question_obj
-
-
 async def add_mcq_bulk_to_exam_service(
     db: AsyncSession, 
     exam_id: int, 
@@ -108,94 +71,131 @@ async def add_mcq_bulk_to_exam_service(
     return exam
 
 
-async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam:
-    """Create exam with questions"""
-    try:
-        # Create exam without questions
-        exam_data = exam.model_dump(exclude={'questions'})
-        exam_obj = Exam(**exam_data)
-        db.add(exam_obj)
-        await db.flush()
-        
-        # Add questions
-        for question in exam.questions:
-            question_obj = Question(
-                exam_id=exam_obj.id,
-                q_type=question.q_type,
-                content=question.content,
-                options=question.options,
-                answer_idx=question.answer_idx
-            )
-            db.add(question_obj)
-        
-        await db.commit()
-        await db.refresh(exam_obj)
-        return exam_obj
-        
-    except Exception as e:
-        await db.rollback()
-        print(f"Error creating exam: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create exam: {str(e)}"
-        )
-
-
-async def get_exam_service(exam_id: int, user_id: Optional[int], db: AsyncSession) -> Exam:
-    """Get exam by ID with questions, ensuring user is enrolled in the associated course (if not admin)"""
-    # Use outerjoin to include exams even if they don't have an associated course
-    query = select(Exam).options(selectinload(Exam.questions))
-
-    # If it's a regular user, try to join with Course to check enrollment. 
-    # For admins (user_id is None), we don't need to join with Course for filtering.
-    if user_id is not None:
-        query = query.outerjoin(Course, Exam.course_id == Course.id)
-
-    query = query.where(Exam.id == exam_id)
-    result = await db.execute(query)
-    exam = result.scalars().first()
-
+async def add_question_to_exam_service(
+    db: AsyncSession,
+    exam_id: int,
+    question: QuestionCreateRequest
+):
+    """Add a single question to exam with Google Drive URL conversion"""
+    # Verify exam exists
+    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = exam_result.scalar_one_or_none()
+    
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
+    
+    # Process and validate all URLs
+    # Question image
+    image_url = validate_and_convert_image_url(question.image_url, 'image_url')
+    
+    # Option texts (remove any URLs)
+    option_a = validate_and_convert_image_url(question.option_a, 'option_a')
+    option_b = validate_and_convert_image_url(question.option_b, 'option_b')
+    option_c = validate_and_convert_image_url(question.option_c, 'option_c')
+    option_d = validate_and_convert_image_url(question.option_d, 'option_d')
+    
+    # Option images (convert Google Drive URLs)
+    option_a_image_url = validate_and_convert_image_url(question.option_a_image_url, 'option_a_image_url')
+    option_b_image_url = validate_and_convert_image_url(question.option_b_image_url, 'option_b_image_url')
+    option_c_image_url = validate_and_convert_image_url(question.option_c_image_url, 'option_c_image_url')
+    option_d_image_url = validate_and_convert_image_url(question.option_d_image_url, 'option_d_image_url')
+    
+    # Create question with processed URLs
+    question_obj = Question(
+        exam_id=exam_id,
+        q_type=question.q_type,
+        content=question.content,
+        image_url=image_url,
+        description=question.description,
+        options=question.options,
+        option_a=option_a,
+        option_b=option_b,
+        option_c=option_c,
+        option_d=option_d,
+        option_a_image_url=option_a_image_url,
+        option_b_image_url=option_b_image_url,
+        option_c_image_url=option_c_image_url,
+        option_d_image_url=option_d_image_url,
+        answer_idx=question.answer_idx
+    )
+    
+    db.add(question_obj)
+    await db.commit()
+    await db.refresh(question_obj)
+    return question_obj
 
-    # Only perform enrollment check if user_id is provided (i.e., not an admin/moderator)
-    # and if the exam actually has a course_id
-    if user_id is not None and exam.course_id is not None:
-        # Check if the user is enrolled in the course associated with this exam
-        user_course_check = await db.execute(
-            select(UserCourseRelation).where(
-                UserCourseRelation.c.User_id == user_id,
-                UserCourseRelation.c.Course_id == exam.course_id
-            )
-        )
-        if user_course_check.scalar_one_or_none() is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User not enrolled in the course for this exam"
-            )
 
-    return exam
-
-
-async def update_exam_service(
+async def update_question_service(
+    db: AsyncSession, 
     exam_id: int, 
-    exam_update: ExamUpdateRequest, 
-    db: AsyncSession
-) -> Exam:
-    """Update exam details"""
-    result = await db.execute(select(Exam).where(Exam.id == exam_id))
-    exam = result.scalar_one_or_none()
+    question_id: int, 
+    question_data: QuestionCreateRequest
+):
+    """Update a specific question with Google Drive URL conversion"""
+    # Check if exam exists
+    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = exam_result.scalar_one_or_none()
     
     if not exam:
-        raise HTTPException(status_code=404, detail="Exam not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Exam with id {exam_id} not found"
+        )
     
-    update_data = exam_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(exam, field, value)
+    # Check if question exists and belongs to this exam
+    question_result = await db.execute(
+        select(Question).where(
+            Question.id == question_id,
+            Question.exam_id == exam_id
+        )
+    )
+    question = question_result.scalar_one_or_none()
+    
+    if not question:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Question with id {question_id} not found in exam {exam_id}"
+        )
+    
+    # Process and validate all URLs
+    image_url = validate_and_convert_image_url(question_data.image_url, 'image_url')
+    
+    # Option texts (remove any URLs)
+    option_a = validate_and_convert_image_url(question_data.option_a, 'option_a')
+    option_b = validate_and_convert_image_url(question_data.option_b, 'option_b')
+    option_c = validate_and_convert_image_url(question_data.option_c, 'option_c')
+    option_d = validate_and_convert_image_url(question_data.option_d, 'option_d')
+    
+    # Option images (convert Google Drive URLs)
+    option_a_image_url = validate_and_convert_image_url(question_data.option_a_image_url, 'option_a_image_url')
+    option_b_image_url = validate_and_convert_image_url(question_data.option_b_image_url, 'option_b_image_url')
+    option_c_image_url = validate_and_convert_image_url(question_data.option_c_image_url, 'option_c_image_url')
+    option_d_image_url = validate_and_convert_image_url(question_data.option_d_image_url, 'option_d_image_url')
+    
+    # Update question fields with processed URLs
+    question.q_type = question_data.q_type
+    question.content = question_data.content
+    question.image_url = image_url
+    question.description = question_data.description
+    question.options = question_data.options
+    question.option_a = option_a
+    question.option_b = option_b
+    question.option_c = option_c
+    question.option_d = option_d
+    question.option_a_image_url = option_a_image_url
+    question.option_b_image_url = option_b_image_url
+    question.option_c_image_url = option_c_image_url
+    question.option_d_image_url = option_d_image_url
+    question.answer_idx = question_data.answer_idx
     
     await db.commit()
-    await db.refresh(exam)
-    return exam
+    await db.refresh(question)
+    
+    return {
+        "message": "Question updated successfully",
+        "question_id": question.id,
+        "exam_id": exam_id
+    }
 
 
 async def delete_exam_service(exam_id: int, db: AsyncSession) -> bool:
@@ -400,60 +400,131 @@ async def delete_question_service(db: AsyncSession, exam_id: int, question_id: i
     }
 
 
-# ADDED: Update a specific question
-async def update_question_service(
-    db: AsyncSession, 
+async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam:
+    """Create exam with questions and Google Drive URL conversion"""
+    try:
+        from datetime import datetime
+
+        # Parse datetime strings (format: 2026-01-20T10:00:00)
+        start_time = datetime.fromisoformat(exam.start_time)
+        show_detailed_results_after = None
+        if exam.show_detailed_results_after:
+            show_detailed_results_after = datetime.fromisoformat(exam.show_detailed_results_after)
+
+        # Create exam without questions
+        exam_data = {
+            'title': exam.title,
+            'description': exam.description,
+            'start_time': start_time,
+            'duration_minutes': exam.duration_minutes,
+            'mark': exam.mark,
+            'minus_mark': exam.minus_mark,
+            'course_id': exam.course_id,
+            'is_active': exam.is_active,
+            'allow_multiple_attempts': exam.allow_multiple_attempts,
+            'show_detailed_results_after': show_detailed_results_after,
+        }
+        exam_obj = Exam(**exam_data)
+        db.add(exam_obj)
+        await db.flush()
+        
+        # Add questions with URL processing
+        for question in exam.questions:
+            # Process URLs
+            image_url = validate_and_convert_image_url(question.image_url, 'image_url')
+            option_a = validate_and_convert_image_url(question.option_a, 'option_a')
+            option_b = validate_and_convert_image_url(question.option_b, 'option_b')
+            option_c = validate_and_convert_image_url(question.option_c, 'option_c')
+            option_d = validate_and_convert_image_url(question.option_d, 'option_d')
+            option_a_image_url = validate_and_convert_image_url(question.option_a_image_url, 'option_a_image_url')
+            option_b_image_url = validate_and_convert_image_url(question.option_b_image_url, 'option_b_image_url')
+            option_c_image_url = validate_and_convert_image_url(question.option_c_image_url, 'option_c_image_url')
+            option_d_image_url = validate_and_convert_image_url(question.option_d_image_url, 'option_d_image_url')
+            
+            question_obj = Question(
+                exam_id=exam_obj.id,
+                q_type=question.q_type,
+                content=question.content,
+                image_url=image_url,
+                description=question.description,
+                options=question.options,
+                option_a=option_a,
+                option_b=option_b,
+                option_c=option_c,
+                option_d=option_d,
+                option_a_image_url=option_a_image_url,
+                option_b_image_url=option_b_image_url,
+                option_c_image_url=option_c_image_url,
+                option_d_image_url=option_d_image_url,
+                answer_idx=question.answer_idx
+            )
+            db.add(question_obj)
+        
+        await db.commit()
+        await db.refresh(exam_obj)
+        return exam_obj
+        
+    except Exception as e:
+        await db.rollback()
+        print(f"Error creating exam: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create exam: {str(e)}"
+        )
+
+
+async def get_exam_service(exam_id: int, user_id: Optional[int], db: AsyncSession) -> Exam:
+    """Get exam by ID with questions, ensuring user is enrolled in the associated course (if not admin)"""
+    # Use outerjoin to include exams even if they don't have an associated course
+    query = select(Exam).options(selectinload(Exam.questions))
+
+    # If it's a regular user, try to join with Course to check enrollment. 
+    # For admins (user_id is None), we don't need to join with Course for filtering.
+    if user_id is not None:
+        query = query.outerjoin(Course, Exam.course_id == Course.id)
+
+    query = query.where(Exam.id == exam_id)
+    result = await db.execute(query)
+    exam = result.scalars().first()
+
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+
+    # Only perform enrollment check if user_id is provided (i.e., not an admin/moderator)
+    # and if the exam actually has a course_id
+    if user_id is not None and exam.course_id is not None:
+        # Check if the user is enrolled in the course associated with this exam
+        user_course_check = await db.execute(
+            select(UserCourseRelation).where(
+                UserCourseRelation.c.User_id == user_id,
+                UserCourseRelation.c.Course_id == exam.course_id
+            )
+        )
+        if user_course_check.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User not enrolled in the course for this exam"
+            )
+
+    return exam
+
+
+async def update_exam_service(
     exam_id: int, 
-    question_id: int, 
-    question_data: QuestionCreateRequest
-):
-    """Update a specific question"""
-    # Check if exam exists
-    exam_result = await db.execute(select(Exam).where(Exam.id == exam_id))
-    exam = exam_result.scalar_one_or_none()
+    exam_update: ExamUpdateRequest, 
+    db: AsyncSession
+) -> Exam:
+    """Update exam details"""
+    result = await db.execute(select(Exam).where(Exam.id == exam_id))
+    exam = result.scalar_one_or_none()
     
     if not exam:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Exam with id {exam_id} not found"
-        )
+        raise HTTPException(status_code=404, detail="Exam not found")
     
-    # Check if question exists and belongs to this exam
-    question_result = await db.execute(
-        select(Question).where(
-            Question.id == question_id,
-            Question.exam_id == exam_id
-        )
-    )
-    question = question_result.scalar_one_or_none()
-    
-    if not question:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Question with id {question_id} not found in exam {exam_id}"
-        )
-    
-    # Update question fields
-    question.q_type = question_data.q_type
-    question.content = question_data.content
-    question.image_url = question_data.image_url
-    question.description = question_data.description
-    question.options = question_data.options
-    question.option_a = question_data.option_a
-    question.option_b = question_data.option_b
-    question.option_c = question_data.option_c
-    question.option_d = question_data.option_d
-    question.option_a_image_url = question_data.option_a_image_url
-    question.option_b_image_url = question_data.option_b_image_url
-    question.option_c_image_url = question_data.option_c_image_url
-    question.option_d_image_url = question_data.option_d_image_url
-    question.answer_idx = question_data.answer_idx
+    update_data = exam_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(exam, field, value)
     
     await db.commit()
-    await db.refresh(question)
-    
-    return {
-        "message": "Question updated successfully",
-        "question_id": question.id,
-        "exam_id": exam_id
-    }
+    await db.refresh(exam)
+    return exam

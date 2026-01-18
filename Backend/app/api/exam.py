@@ -42,7 +42,11 @@ async def get_all_exams(
 
 
 @router.post("/")
-async def create_exam(exam: ExamCreateRequest, db: Session = Depends(get_db)):
+async def create_exam(
+    exam: ExamCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+):
 	res = await create_exam_service(exam, db)
 	return res
 

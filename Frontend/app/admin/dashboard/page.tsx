@@ -8,6 +8,16 @@ import CreateExamModal from '@/components/admin/CreateExamModal';
 import AddQuestionModal from '@/components/admin/AddQuestionModal';
 import BulkQuestionUploadModal from '@/components/admin/BulkQuestionUploadModal';
 import ExamDetailModal from '@/components/admin/ExamDetailModal';
+import CustomModal from '@/components/common/CustomModal';
+import { createSuccessModal, createErrorModal, createConfirmModal } from '@/lib/modalHelpers';
+
+interface Question {
+  id: number;
+  q_type: string;
+  content: string;
+  options: string[];
+  answer_idx: number;
+}
 
 interface Exam {
   id: number;
@@ -20,17 +30,14 @@ interface Exam {
   questions?: Question[];
 }
 
-interface Question {
-  id: number;
-  q_type: string;
-  content: string;
-  options: string[];
-  answer_idx: number;
+interface User {
+  name: string;
+  role: string;
 }
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,6 +45,13 @@ export default function AdminDashboard() {
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showExamDetailModal, setShowExamDetailModal] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  
+  // Modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState<ReturnType<typeof createSuccessModal> | ReturnType<typeof createErrorModal> | ReturnType<typeof createConfirmModal> | null>(null);
+  const [examToDelete, setExamToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     const currentUser = apiService.getCurrentUser();
@@ -47,7 +61,7 @@ export default function AdminDashboard() {
     }
     setUser(currentUser);
     loadExams();
-  }, []);
+  }, [router]);
 
   const loadExams = async () => {
     try {
@@ -56,6 +70,13 @@ export default function AdminDashboard() {
       setExams(data);
     } catch (error) {
       console.error('Failed to load exams:', error);
+      const err = error as { message?: string };
+      setModalConfig(createErrorModal(
+        "লোড ব্যর্থ!",
+        "পরীক্ষা লোড করতে সমস্যা হয়েছে।",
+        err.message || "অনুগ্রহ করে পেজ রিফ্রেশ করুন।"
+      ));
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -66,18 +87,115 @@ export default function AdminDashboard() {
     router.push('/auth/login');
   };
 
-  const handleDeleteExam = async (examId: number) => {
-    if (!confirm('আপনি কি নিশ্চিত এই পরীক্ষা মুছে ফেলতে চান?')) {
+  const handleDeleteExamClick = (examId: number) => {
+    console.log("=== Delete Click ===");
+    console.log("Exam ID:", examId);
+    
+    // Check if exam has questions
+    const exam = exams.find(e => e.id === examId);
+    const questionCount = exam?.questions?.length || 0;
+    
+    console.log("Question Count:", questionCount);
+    
+    if (questionCount > 0) {
+      setModalConfig(createErrorModal(
+        "মুছে ফেলা যাবে না!",
+        "এই পরীক্ষায় প্রশ্ন রয়েছে।",
+        `প্রথমে ${questionCount}টি প্রশ্ন মুছে ফেলুন, তারপর পরীক্ষা মুছতে পারবেন।`
+      ));
+      setShowErrorModal(true);
+      return;
+    }
+    
+    // Store exam ID before showing modal
+    setExamToDelete(examId);
+    
+    // Create confirm modal with the examId directly in the callback
+    const confirmConfig = {
+      title: "পরীক্ষা মুছে ফেলবেন?",
+      message: "আপনি কি নিশ্চিত যে এই পরীক্ষাটি মুছে ফেলতে চান?",
+      description: "এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।",
+      type: "confirm" as const,
+      icon: "?",
+      iconColor: "bg-yellow-500",
+      subtitle: "আপনি কি নিশ্চিত যে এই পরীক্ষাটি মুছে ফেলতে চান?",
+      buttons: [
+        {
+          label: "না, রাখুন",
+          onClick: () => {
+            console.log("Cancel clicked");
+            setShowConfirmModal(false);
+            setExamToDelete(null);
+            setModalConfig(null);
+          },
+          variant: "secondary" as const,
+        },
+        {
+          label: "হ্যাঁ, মুছে ফেলুন",
+          onClick: () => {
+            console.log("Confirm delete clicked for exam:", examId);
+            confirmDeleteExam(examId);
+          },
+          variant: "danger" as const,
+        },
+      ],
+    };
+    
+    setModalConfig(confirmConfig);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDeleteExam = async (examId: number) => {
+    console.log("=== Delete Exam Started ===");
+    console.log("Exam to Delete:", examId);
+    
+    if (!examId) {
+      console.log("❌ No exam to delete");
       return;
     }
 
     try {
-      await apiService.deleteExam(examId);
-      alert('পরীক্ষা সফলভাবে মুছে ফেলা হয়েছে');
-      loadExams(); // Re-fetch exams after successful deletion
-    } catch (error: any) {
-      alert(error.message || 'পরীক্ষা মুছে ফেলতে ব্যর্থ');
+      console.log("✓ Closing confirm modal...");
+      setShowConfirmModal(false);
+      setModalConfig(null);
+      
+      console.log("✓ Calling delete API...");
+      const response = await apiService.deleteExam(examId);
+      console.log("✅ Delete API Response:", response);
+      
+      console.log("✓ Preparing success modal...");
+      const successConfig = createSuccessModal(
+        "পরীক্ষা মুছে ফেলা হয়েছে!",
+        "পরীক্ষাটি সফলভাবে মুছে ফেলা হয়েছে।",
+        "পরীক্ষা এবং সকল তথ্য সিস্টেম থেকে সরিয়ে ফেলা হয়েছে।"
+      );
+      console.log("Success Config:", successConfig);
+      
+      setModalConfig(successConfig);
+      setShowSuccessModal(true);
+      console.log("✓ Success modal should show now");
+      
+      setExamToDelete(null);
+      
+      console.log("✓ Reloading exams...");
+      await loadExams();
+      console.log("✅ Exams reloaded");
+      
+    } catch (error) {
+      console.error("❌ Delete Error:", error);
+      const err = error as { message?: string; detail?: string };
+      console.error("Error Details:", err);
+      
+      setModalConfig(createErrorModal(
+        "মুছে ফেলা ব্যর্থ!",
+        "পরীক্ষা মুছে ফেলতে সমস্যা হয়েছে।",
+        err.detail || err.message || "অনুগ্রহ করে আবার চেষ্টা করুন।"
+      ));
+      setShowErrorModal(true);
+      setExamToDelete(null);
     }
+    
+    console.log("=== Delete Exam Ended ===");
   };
 
   const handleViewExam = async (examId: number) => {
@@ -86,8 +204,30 @@ export default function AdminDashboard() {
       setSelectedExam(examDetail);
       setShowExamDetailModal(true);
     } catch (error) {
-      alert('পরীক্ষার বিস্তারিত লোড করতে ব্যর্থ');
+      const err = error as { message?: string };
+      setModalConfig(createErrorModal(
+        "লোড ব্যর্থ!",
+        "পরীক্ষার বিস্তারিত লোড করতে ব্যর্থ।",
+        err.message || "অনুগ্রহ করে আবার চেষ্টা করুন।"
+      ));
+      setShowErrorModal(true);
     }
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    setModalConfig(null);
+  };
+
+  const handleErrorModalClose = () => {
+    setShowErrorModal(false);
+    setModalConfig(null);
+  };
+
+  const handleConfirmModalClose = () => {
+    setShowConfirmModal(false);
+    setExamToDelete(null);
+    setModalConfig(null);
   };
 
   if (loading) {
@@ -265,7 +405,7 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                       <button
-                        onClick={() => handleDeleteExam(exam.id)}
+                        onClick={() => handleDeleteExamClick(exam.id)}
                         className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
                       >
                         মুছে ফেলুন
@@ -279,6 +419,7 @@ export default function AdminDashboard() {
         </div>
       </main>
 
+      {/* Create Exam Modal */}
       {showCreateModal && (
         <CreateExamModal
           onClose={() => setShowCreateModal(false)}
@@ -289,6 +430,7 @@ export default function AdminDashboard() {
         />
       )}
 
+      {/* Add Question Modal */}
       {showAddQuestionModal && selectedExam && (
         <AddQuestionModal
           exam={selectedExam}
@@ -304,6 +446,7 @@ export default function AdminDashboard() {
         />
       )}
 
+      {/* Bulk Upload Modal */}
       {showBulkUploadModal && selectedExam && (
         <BulkQuestionUploadModal
           exam={selectedExam}
@@ -319,6 +462,7 @@ export default function AdminDashboard() {
         />
       )}
 
+      {/* Exam Detail Modal */}
       {showExamDetailModal && selectedExam && (
         <ExamDetailModal
           exam={selectedExam}
@@ -328,6 +472,63 @@ export default function AdminDashboard() {
           }}
           onUpdate={loadExams}
         />
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && modalConfig && 'subtitle' in modalConfig && (
+        <div className="fixed inset-0 z-[70]">
+          <CustomModal
+            isOpen={showSuccessModal}
+            onClose={handleSuccessModalClose}
+            title={modalConfig.title}
+            message={modalConfig.message}
+            description={modalConfig.description}
+            type="success"
+            buttons={[
+              {
+                label: 'ঠিক আছে',
+                onClick: handleSuccessModalClose,
+                variant: 'primary',
+              },
+            ]}
+          />
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && modalConfig && 'subtitle' in modalConfig && (
+        <div className="fixed inset-0 z-[70]">
+          <CustomModal
+            isOpen={showErrorModal}
+            onClose={handleErrorModalClose}
+            title={modalConfig.title}
+            message={modalConfig.message}
+            description={modalConfig.description}
+            type="error"
+            buttons={[
+              {
+                label: 'ঠিক আছে',
+                onClick: handleErrorModalClose,
+                variant: 'primary',
+              },
+            ]}
+          />
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {showConfirmModal && modalConfig && 'buttons' in modalConfig && (
+        <div className="fixed inset-0 z-[70]">
+          <CustomModal
+            isOpen={showConfirmModal}
+            onClose={handleConfirmModalClose}
+            title={modalConfig.title}
+            message={modalConfig.message}
+            description={modalConfig.description}
+            type="confirm"
+            buttons={modalConfig.buttons}
+          />
+        </div>
       )}
     </div>
   );
