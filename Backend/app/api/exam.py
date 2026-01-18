@@ -44,11 +44,32 @@ async def create_exam(exam: ExamCreateRequest, db: AsyncSession = Depends(get_db
 @router.post("/{exam_id}/add-question", status_code=status.HTTP_201_CREATED)
 async def add_question_to_exam(
     exam_id: int,
-    question: QuestionCreateRequest,
+    question: QuestionCreateRequest = Depends(),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"])),
+    image: UploadFile = File(None),
+    option_a_img: UploadFile = File(None),
+    option_b_img: UploadFile = File(None),
+    option_c_img: UploadFile = File(None),
+    option_d_img: UploadFile = File(None)
 ):
-    """Add a single question to existing exam"""
+    """Add a single question to existing exam, with optional image uploads"""
+    def save_image(file):
+        if file:
+            public_dir = os.path.join(os.path.dirname(__file__), "../../public")
+            os.makedirs(public_dir, exist_ok=True)
+            file_path = os.path.join(public_dir, file.filename)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            return f"/public/{file.filename}"
+        return None
+
+    question.image = save_image(image)
+    question.option_a_img = save_image(option_a_img)
+    question.option_b_img = save_image(option_b_img)
+    question.option_c_img = save_image(option_c_img)
+    question.option_d_img = save_image(option_d_img)
+
     result = await add_question_to_exam_service(db, exam_id, question)
     return {
         "message": "Question added successfully",
@@ -89,11 +110,32 @@ async def delete_exam(exam_id: int, db: AsyncSession = Depends(get_db)):
 async def update_question(
     exam_id: int,
     question_id: int,
-    question: QuestionCreateRequest,
+    question: QuestionCreateRequest = Depends(),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"])),
+    image: UploadFile = File(None),
+    option_a_img: UploadFile = File(None),
+    option_b_img: UploadFile = File(None),
+    option_c_img: UploadFile = File(None),
+    option_d_img: UploadFile = File(None)
 ):
-    """Update a specific question in an exam"""
+    """Update a specific question in an exam, with optional image uploads"""
+    def save_image(file):
+        if file:
+            public_dir = os.path.join(os.path.dirname(__file__), "../../public")
+            os.makedirs(public_dir, exist_ok=True)
+            file_path = os.path.join(public_dir, file.filename)
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            return f"/public/{file.filename}"
+        return None
+
+    question.image = save_image(image)
+    question.option_a_img = save_image(option_a_img)
+    question.option_b_img = save_image(option_b_img)
+    question.option_c_img = save_image(option_c_img)
+    question.option_d_img = save_image(option_d_img)
+
     result = await update_question_service(db, exam_id, question_id, question)
     return result
 
