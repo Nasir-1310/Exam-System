@@ -1,9 +1,12 @@
 from dotenv import load_dotenv
 load_dotenv()
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from app.lib.config import settings
 import logging
+from fastapi.staticfiles import StaticFiles
+import shutil
+import os
 
 # Configure logging
 logging.getLogger('passlib').setLevel(logging.ERROR)
@@ -17,6 +20,20 @@ app = FastAPI(
     redoc_url="/redocs" if settings.DEBUG else None,
     openapi_url="/openapi.json" if settings.DEBUG else None
 )
+
+# Serve static files from /public
+app.mount("/public", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "../public")), name="public")
+
+# Image upload endpoint
+@app.post("/upload-image/")
+async def upload_image(file: UploadFile = File(...)):
+    public_dir = os.path.join(os.path.dirname(__file__), "../public")
+    os.makedirs(public_dir, exist_ok=True)
+    file_path = os.path.join(public_dir, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    url = f"/public/{file.filename}"
+    return {"url": url}
 
 # CORS middleware
 app.add_middleware(

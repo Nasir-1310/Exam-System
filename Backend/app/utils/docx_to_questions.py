@@ -22,7 +22,7 @@ def _split_text_and_image(section: str) -> Tuple[Optional[str], Optional[str]]:
     if not section:
         return None, None
 
-    img_pattern = re.compile(r'<img[^>]*>', flags=re.IGNORECASE)
+    img_pattern = re.compile(r'<img[^>]*src=["\\\']([^"\\\']+)["\\\'][^>]*>', flags=re.IGNORECASE)
     text_parts: List[str] = []
     image_tag: Optional[str] = None
 
@@ -38,6 +38,21 @@ def _split_text_and_image(section: str) -> Tuple[Optional[str], Optional[str]]:
             text_parts.append(line_without_imgs)
 
     text_value = '\n'.join(text_parts).strip() if text_parts else None
+
+    # If image_tag is base64, save it as file and return URL
+    if image_tag and image_tag.startswith('data:'):
+        import base64, mimetypes, os
+        header, b64data = image_tag.split(',', 1)
+        mime = header.split(';')[0][5:]
+        ext = mimetypes.guess_extension(mime) or '.png'
+        filename = f"img_{abs(hash(image_tag))}{ext}"
+        public_dir = os.path.join(os.path.dirname(__file__), '../../public')
+        os.makedirs(public_dir, exist_ok=True)
+        file_path = os.path.join(public_dir, filename)
+        with open(file_path, 'wb') as f:
+            f.write(base64.b64decode(b64data))
+        url = f"/public/{filename}"
+        return text_value, url
     return text_value, image_tag
 
 
