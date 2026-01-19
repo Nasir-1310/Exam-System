@@ -2,7 +2,7 @@
 
 "use client";
 import { useState } from "react";
-
+import MathContentRenderer from '@/components/editor/MathContentRenderer';
 import apiService from "@/lib/api";
 import AddQuestionModal from "./AddQuestionModal";
 import { convertGoogleDriveUrl } from "@/lib/googleDriveUtils";
@@ -583,12 +583,15 @@ export default function ExamDetailModal({
                     className="border border-gray-200 rounded-xl p-3 sm:p-4 hover:border-indigo-300 transition-colors"
                   >
                     <div className="flex justify-between items-start gap-3 mb-3">
-                      <h4 className="font-medium text-gray-900 text-sm sm:text-base flex-1 break-words">
-                        <span className="text-indigo-600 font-semibold">
-                          প্রশ্ন {index + 1}:
-                        </span>{" "}
-                        {question.content}
-                      </h4>
+                      <div className="flex-1">
+  <span className="text-indigo-600 font-semibold text-sm sm:text-base">
+    প্রশ্ন {index + 1}:
+  </span>
+  <MathContentRenderer 
+    content={question.content}
+    className="mt-1 text-gray-900"
+  />
+</div>
                       <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleEditQuestion(question)}
@@ -655,17 +658,17 @@ export default function ExamDetailModal({
                       </div>
                     )}
 
-                    {question.description &&
-                      question.description.trim().length > 0 && (
-                        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <h5 className="text-sm font-medium text-blue-800 mb-1">
-                            📚 উত্তরের ব্যাখ্যা:
-                          </h5>
-                          <p className="text-blue-900 text-sm leading-relaxed">
-                            {question.description}
-                          </p>
-                        </div>
-                      )}
+                   {question.description && question.description.trim().length > 0 && (
+  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+    <h5 className="text-sm font-medium text-blue-800 mb-1">
+      📚 উত্তরের ব্যাখ্যা:
+    </h5>
+    <MathContentRenderer 
+      content={question.description}
+      className="text-blue-900 text-sm leading-relaxed"
+    />
+  </div>
+)}
 
                     <div className="space-y-2">
                       {["A", "B", "C", "D"].map((letter, optIndex) => {
@@ -695,17 +698,16 @@ export default function ExamDetailModal({
                                 {letter}.
                               </span>
                               <div className="flex-1 space-y-2">
-                                {optionText && (
-                                  <span
-                                    className={`block break-words ${
-                                      isCorrect
-                                        ? "text-green-900 font-medium"
-                                        : "text-gray-700"
-                                    }`}
-                                  >
-                                    {optionText}
-                                  </span>
-                                )}
+                               {optionText && (
+  <MathContentRenderer 
+    content={optionText}
+    className={`block ${
+      isCorrect
+        ? "text-green-900 font-medium"
+        : "text-gray-700"
+    }`}
+  />
+)}
 
                                 {optionImage && (
                                   <div className="relative w-40 h-28 bg-gray-100 rounded-lg overflow-hidden">

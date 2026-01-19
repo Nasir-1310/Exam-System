@@ -1,3 +1,4 @@
+// app/(auth)/login/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -30,9 +31,9 @@ export default function LoginPage() {
     try {
       const response = await apiService.login(formData);
       
-      // Redirect based on role
+      // ✅ FIXED: Changed /admin/dashboard to /dashboard
       if (response.user.role === 'ADMIN' || response.user.role === 'MODERATOR') {
-        router.push('/admin/dashboard');
+        router.push('/dashboard');
       } else {
         router.push('/');
       }
@@ -138,7 +139,7 @@ export default function LoginPage() {
 
             <div className="text-center text-sm">
               <span className="text-gray-600">নতুন ব্যবহারকারী? </span>
-              <Link href="/auth/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
                 রেজিস্ট্রেশন করুন
               </Link>
             </div>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Exam } from '@/lib/types';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
+import MathContentRenderer from '@/components/editor/MathContentRenderer'; // ADD THIS IMPORT
 
 interface ExamCardProps {
   exam: Exam;
@@ -106,12 +107,16 @@ export default function ExamCard({
       
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-            <p className="text-gray-600 text-sm mt-1">{description}</p>
+            {/* UPDATED: Use MathContentRenderer for exam description */}
+            <MathContentRenderer 
+              content={description}
+              className="text-gray-600 text-sm mt-1"
+            />
           </div>
           {is_premium && (
-            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium ml-2 flex-shrink-0">
               Premium
             </span>
           )}

@@ -4,6 +4,7 @@
 import { convertGoogleDriveUrl } from "@/lib/googleDriveUtils";
 import { Question } from "@/lib/types";
 import { useEffect, useState } from "react";
+import MathContentRenderer from "@/components/editor/MathContentRenderer"; // ADD THIS IMPORT
 
 interface QuestionCardProps {
   question: Question;
@@ -112,7 +113,7 @@ export default function QuestionCard({
 
   return (
     <div>
-      {/* ✅ CHANGED: Using <img> instead of <Image> */}
+      {/* Question Image */}
       {question.image_url && (
         <div className="mb-6 relative w-full h-64">
           <img
@@ -162,7 +163,7 @@ export default function QuestionCard({
                       {letter}.
                     </span>
                     <div className="flex-1">
-                      {/* ✅ CHANGED: Using <img> instead of <Image> */}
+                      {/* UPDATED: Check if option text is an image URL or regular text */}
                       {optionText.trim() && isImageUrl(optionText) ? (
                         <div className="relative w-48 h-32">
                           <img
@@ -180,12 +181,14 @@ export default function QuestionCard({
                           />
                         </div>
                       ) : optionText.trim() ? (
-                        <span className="text-gray-900 leading-relaxed">
-                          {optionText}
-                        </span>
+                        // UPDATED: Use MathContentRenderer for option text
+                        <MathContentRenderer 
+                          content={optionText}
+                          className="text-gray-900 leading-relaxed"
+                        />
                       ) : null}
 
-                      {/* ✅ CHANGED: Using <img> instead of <Image> */}
+                      {/* Option Image (separate from option text) */}
                       {optionImage && (
                         <div className={optionText.trim() ? "mt-2 relative w-48 h-32" : "relative w-48 h-32"}>
                           <img

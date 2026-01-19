@@ -1,4 +1,4 @@
-// Frontend/app/auth/register/page.tsx - ALL ISSUES FIXED
+// Frontend/app/(auth)/register/page.tsx - ALL ISSUES FIXED
 'use client';
 
 import { useState } from 'react';
@@ -245,7 +245,7 @@ export default function RegisterPage() {
             {/* Login Link */}
             <div className="text-center text-sm pt-2">
               <span className="text-gray-600">ইতিমধ্যে অ্যাকাউন্ট আছে? </span>
-              <Link href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+              <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
                 লগইন করুন
               </Link>
             </div>

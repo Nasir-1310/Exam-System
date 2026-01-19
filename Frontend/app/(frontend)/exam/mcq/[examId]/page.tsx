@@ -8,6 +8,7 @@ import { Exam, Question, Answer } from "@/lib/types";
 import QuestionCard from "@/components/exam/QuestionCard";
 import Timer from "@/components/exam/Timer";
 import { convertGoogleDriveUrl } from "@/lib/googleDriveUtils";
+import MathContentRenderer from "@/components/editor/MathContentRenderer"; // ADD THIS IMPORT
 import Swal from "sweetalert2";
 import Image from "next/image";
 
@@ -252,12 +253,16 @@ export default function MCQExamPage() {
         <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">
           {exam.title}
         </h1>
-        <p className="text-gray-600 text-center mb-8">{exam.description}</p>
+        {/* UPDATED: Use MathContentRenderer for exam description */}
+        <MathContentRenderer 
+          content={exam.description}
+          className="text-gray-600 text-center mb-8"
+        />
 
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center space-x-4">
-              <h2 className="text-xl font-semibold">পরীক্ষা প্রশ্নসমূহ</h2>
+              <h2 className="text-xl text-black font-semibold">পরীক্ষা প্রশ্নসমূহ</h2>
               <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                 উত্তর দেওয়া: {answeredQuestions}/{exam.questions.length}
               </span>
@@ -334,15 +339,16 @@ export default function MCQExamPage() {
                   </div>
                   <div className="flex-1">
                     {/* ============================================================================
-                FIXED: Only show question TEXT here, NOT images
+                UPDATED: Use MathContentRenderer for question content
+                Only show question TEXT here if it exists and is NOT an image URL
                 Images are handled by QuestionCard component
                 ============================================================================ */}
                     <div className="mb-4">
-                      {/* Only display question text if it exists and is NOT an image URL */}
                       {question.content && !isImageUrl(question.content) && (
-                        <h3 className="text-lg font-medium text-gray-900 mb-4">
-                          {question.content}
-                        </h3>
+                        <MathContentRenderer 
+                          content={question.content}
+                          className="text-lg font-medium text-gray-900 mb-4"
+                        />
                       )}
                     </div>
                     {/* ============================================================================

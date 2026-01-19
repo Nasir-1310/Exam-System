@@ -11,7 +11,7 @@ from app.utils.jwt import create_token, get_current_user
 from app.schemas.user import UserResponse
 from app.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
 
-router = APIRouter(prefix="/api/auth", tags=["Auth"])
+router = APIRouter(prefix="/api", tags=["Auth"])
 
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):

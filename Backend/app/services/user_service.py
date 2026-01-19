@@ -42,7 +42,7 @@ async def create_user(db: AsyncSession, payload: RegisterRequest):
             active_mobile=payload.active_mobile,
             whatsapp=payload.whatsapp,
             dob=payload.dob,
-           role=payload.role if payload.role else UserRole.USER.value  # ← Fix করো এটা
+           role=payload.role if payload.role else UserRole.USER.value 
         )
         
         db.add(user)

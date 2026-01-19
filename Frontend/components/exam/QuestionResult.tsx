@@ -3,6 +3,7 @@
 
 import { AnswerDetail, Question } from '@/lib/types';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
+import MathContentRenderer from '@/components/editor/MathContentRenderer'; // ADD THIS IMPORT
 
 interface QuestionResultProps {
   answerDetail: AnswerDetail;
@@ -131,11 +132,12 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-2 gap-2">
-            {/* ============================================================================
-                FIXED: Only show question content if it's NOT an image URL
-                ============================================================================ */}
+            {/* UPDATED: Use MathContentRenderer for question content if it's NOT an image URL */}
             {question.content && !isImageUrl(question.content) && (
-              <h3 className="text-base sm:text-lg font-medium text-gray-900 flex-1 break-words">{question.content}</h3>
+              <MathContentRenderer 
+                content={question.content}
+                className="text-base sm:text-lg font-medium text-gray-900 flex-1 break-words"
+              />
             )}
             <span className={`self-start px-2 py-1 rounded text-xs sm:text-sm font-medium whitespace-nowrap ${
               isSkipped ? 'bg-gray-100 text-gray-800' : (isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')
@@ -144,9 +146,7 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
             </span>
           </div>
 
-          {/* ============================================================================
-              FIXED: Display question image from image_url field using <img> tag
-              ============================================================================ */}
+          {/* Display question image from image_url field */}
           {question.image_url && (
             <div className="mb-4 relative w-full max-w-2xl mx-auto">
               <img
@@ -164,9 +164,7 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
             </div>
           )}
 
-          {/* ============================================================================
-              LEGACY SUPPORT: If content field contains an image URL (backward compatibility)
-              ============================================================================ */}
+          {/* LEGACY SUPPORT: If content field contains an image URL (backward compatibility) */}
           {question.content && isImageUrl(question.content) && (
             <div className="mb-4 relative w-full max-w-2xl mx-auto">
               <img
@@ -183,9 +181,6 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
               />
             </div>
           )}
-          {/* ============================================================================
-              END QUESTION IMAGE DISPLAY
-              ============================================================================ */}
 
           {isSkipped && showDetails && (
             <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
@@ -220,9 +215,7 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
                     <div className="flex items-start flex-1 min-w-0">
                       <span className="font-bold mr-2 sm:mr-3 text-base sm:text-lg text-gray-700 flex-shrink-0">{letter}.</span>
                       <div className="flex-1 min-w-0">
-                        {/* ============================================================================
-                            FIXED: Check if option text is an image URL
-                            ============================================================================ */}
+                        {/* UPDATED: Check if option text is an image URL or regular text */}
                         {optionText.trim() && isImageUrl(optionText) ? (
                           // Option text is an image URL - render as image
                           <div className="relative w-40 sm:w-48 h-24 sm:h-32">
@@ -232,23 +225,27 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
                               className="w-full h-full object-contain border-2 border-gray-300 rounded-lg shadow-md"
                               onError={(e) => {
                                 const target = e.currentTarget as HTMLImageElement;
-                                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDE5MiAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTI4IiByeD0iOCIgZmlsbD0iI0U1RTdFQiIvPgo8cGF0aCBkPSJNOTYgNDBWODhNNjQgNTJIMTI4IiBzdHJva2U9IiM5Q0E0QUYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjx0ZXh0IHg9Ijk2IiB5PSI4MCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzlDQTQ5RiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2U8L3RleHQ+Cjwvc3ZnPg==';
+                                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDE5MiAxMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTI4IiByeD0iOCIgZmlsbD0iI0U1RTdFQiIvPgo8cGF0aCBkPSJNOTYgNDBWODhNNjQgNTJIMTI4IiBzdHJva2U9IiM5Q0E0QUYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjx0ZXh0IHg9Ijk2IiB5PSI4MCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzlDQTRBRiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2U8L3RleHQ+Cjwvc3ZnPg==';
                                 target.alt = `Option ${letter} image failed to load`;
                                 console.warn(`Option ${letter} result image (from text) failed to load:`, optionText);
                               }}
                               loading="lazy"
                             />
                           </div>
+                        ) : optionText.trim() ? (
+                          // UPDATED: Option text is regular text - use MathContentRenderer
+                          <MathContentRenderer 
+                            content={optionText}
+                            className="leading-relaxed text-sm sm:text-base break-words text-gray-900"
+                          />
                         ) : (
-                          // Option text is regular text
-                          <span className={`leading-relaxed text-sm sm:text-base break-words ${optionText.trim() ? 'text-gray-900' : 'text-gray-400 italic'}`}>
-                            {optionText.trim() || 'অপশন টেক্সট নেই'}
+                          // No option text
+                          <span className="text-gray-400 italic leading-relaxed text-sm sm:text-base break-words">
+                            অপশন টেক্সট নেই
                           </span>
                         )}
                         
-                        {/* ============================================================================
-                            Separate option image field using <img> tag
-                            ============================================================================ */}
+                        {/* Separate option image field */}
                         {optionImage && (
                           <div className={`${optionText.trim() ? 'mt-2' : ''} relative w-40 sm:w-48 h-24 sm:h-32`}>
                             <img
@@ -265,9 +262,6 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
                             />
                           </div>
                         )}
-                        {/* ============================================================================
-                            END OPTION IMAGE DISPLAY
-                            ============================================================================ */}
                       </div>
                     </div>
                     <div className="ml-2 sm:ml-3 flex-shrink-0 flex flex-col items-end gap-1">
@@ -298,11 +292,14 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
             </div>
           )}
 
-          {/* Show description for ALL question types (including skipped) when showDetails is true and description exists */}
+          {/* UPDATED: Use MathContentRenderer for question description */}
           {showDetails && question.description && question.description.trim().length > 0 && (
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="text-sm font-medium text-blue-800 mb-2">📚 উত্তরের ব্যাখ্যা:</h4>
-              <p className="text-blue-900 text-sm leading-relaxed">{question.description}</p>
+              <MathContentRenderer 
+                content={question.description}
+                className="text-blue-900 text-sm leading-relaxed"
+              />
             </div>
           )}
         </div>

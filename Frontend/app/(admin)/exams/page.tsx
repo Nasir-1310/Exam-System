@@ -1,4 +1,5 @@
-// Frontend/app/admin/dashboard/page.tsx
+//Frontend/app/(admin)/exams/page.tsx
+// Frontend/app/(admin)/dashboard/page.tsx
 
 'use client';
 import { useState, useEffect } from 'react';
@@ -56,7 +57,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const currentUser = apiService.getCurrentUser();
     if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'MODERATOR')) {
-      router.push('/auth/login');
+      router.push('/login');
       return;
     }
     setUser(currentUser);
@@ -84,7 +85,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     apiService.logout();
-    router.push('/auth/login');
+    router.push('/login');
   };
 
   const handleDeleteExamClick = (examId: number) => {
@@ -243,7 +244,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {user && (
+      {/* {user && (
         <header className="bg-white shadow sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex justify-between items-center">
@@ -260,7 +261,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </header>
-      )}
+      )} */}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Stats */}
@@ -380,7 +381,7 @@ export default function AdminDashboard() {
                     <div className="flex flex-row lg:flex-col gap-2 lg:ml-4">
                       <button
                         onClick={() => handleViewExam(exam.id)}
-                        className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                        className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-[10px] sm:text-sm whitespace-nowrap"
                       >
                         বিস্তারিত দেখুন
                       </button>
@@ -390,7 +391,7 @@ export default function AdminDashboard() {
                             setSelectedExam(exam);
                             setShowAddQuestionModal(true);
                           }}
-                          className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                          className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-[10px] sm:text-sm whitespace-nowrap"
                         >
                           প্রশ্ন যোগ করুন
                         </button>
@@ -399,14 +400,14 @@ export default function AdminDashboard() {
                             setSelectedExam(exam);
                             setShowBulkUploadModal(true);
                           }}
-                          className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                          className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-[10px] sm:text-sm whitespace-nowrap"
                         >
                           বাল্ক আপলোড
                         </button>
                       </div>
                       <button
                         onClick={() => handleDeleteExamClick(exam.id)}
-                        className="flex-1 lg:flex-none px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                        className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-[10px] sm:text-sm whitespace-nowrap"
                       >
                         মুছে ফেলুন
                       </button>

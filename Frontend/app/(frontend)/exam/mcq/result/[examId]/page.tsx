@@ -7,6 +7,7 @@ import apiService from '@/lib/api';
 import { ResultDetailed, Exam, Question, AnswerDetail } from '@/lib/types';
 import ResultSummary from '@/components/exam/ResultSummary';
 import QuestionResult from '@/components/exam/QuestionResult';
+import MathContentRenderer from '@/components/editor/MathContentRenderer'; // ADD THIS IMPORT
 import Swal from 'sweetalert2';
 
 export default function MCQExamResultPage() {
@@ -68,7 +69,15 @@ export default function MCQExamResultPage() {
     return (
       <div className="min-h-screen bg-gray-100 py-8">
         <div className="container mx-auto px-4 max-w-4xl">
-          <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">Result for {exam.title}</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">{exam.title}</h1>
+          
+          {/* ADDED: Display exam description if available */}
+          {exam.description && (
+            <MathContentRenderer 
+              content={exam.description}
+              className="text-gray-600 text-center mb-8"
+            />
+          )}
 
           <ResultSummary result={result} exam={exam} />
 
@@ -89,7 +98,15 @@ export default function MCQExamResultPage() {
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">Result for {exam.title}</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">{exam.title}</h1>
+        
+        {/* ADDED: Display exam description if available */}
+        {exam.description && (
+          <MathContentRenderer 
+            content={exam.description}
+            className="text-gray-600 text-center mb-8"
+          />
+        )}
 
         <ResultSummary result={result} exam={exam} />
 
@@ -97,7 +114,7 @@ export default function MCQExamResultPage() {
           <div className="mt-8">
             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">প্রশ্নের বিস্তারিত উত্তর</h2>
+                <h2 className="text-2xl font-bold text-gray-900">প্রশ্নের বিস তারিত উত্তর</h2>
                 <button
                   onClick={() => setShowDetailedResults(!showDetailedResults)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

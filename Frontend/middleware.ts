@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes - authentication na lagbe
-  const publicPaths = ['/', '/auth/login', '/auth/register'];
+  const publicPaths = ['/', '/login', '/register'];
   const isPublicPath = publicPaths.includes(pathname);
 
   // Protected routes - logged in user access korbe
@@ -23,7 +23,7 @@ export function middleware(request: NextRequest) {
   // Rule 1: Protected routes e token check
   // ==========================================
   if (isProtectedPath && !token) {
-    const loginUrl = new URL('/auth/login', request.url);
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
   if (isAdminPath) {
     if (!token) {
       // Not logged in -> redirect to login
-      const loginUrl = new URL('/auth/login', request.url);
+      const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -48,10 +48,10 @@ export function middleware(request: NextRequest) {
   // ==========================================
   // Rule 3: Already logged in user login/register e jete parbe na
   // ==========================================
-  if (token && (pathname === '/auth/login' || pathname === '/auth/register')) {
+  if (token && (pathname === '/login' || pathname === '/register')) {
     // Check if admin
     if (userRole === 'ADMIN' || userRole === 'MODERATOR') {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     // Regular user
     // return NextResponse.redirect(new URL('/exam', request.url));
