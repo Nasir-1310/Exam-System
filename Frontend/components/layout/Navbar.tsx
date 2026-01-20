@@ -83,8 +83,6 @@ export default function Navbar() {
   const navItems = [
     { label: 'হোম', href: '/' },
     { label: 'কোর্স সমূহ', href: '/courses' },
-    { label: 'বিসিএস কোর্স', href: '/bcs-course' },
-    { label: 'ব্যাংক জব কোর্স', href: '/bank-course' },
     { label: 'বুক', href: '/books' },
     { label: 'ফ্রি কোর্স', href: '/free-course' },
     { label: 'পরিক্ষা', href: '/exam' },

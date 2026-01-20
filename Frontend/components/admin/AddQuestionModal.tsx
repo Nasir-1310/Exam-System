@@ -121,6 +121,9 @@ export default function AddQuestionModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+     console.log("📤 Submitting question with content:", formData.content);
+  console.log("📤 Submitting question with description:", formData.description);
+
     if (!formData.content.trim()) {
       setModalConfig(createErrorModal(
         "প্রশ্ন আবশ্যক!",

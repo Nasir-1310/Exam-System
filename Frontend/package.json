@@ -12,6 +12,7 @@
     "@tiptap/extension-color": "^3.15.3",
     "@tiptap/extension-highlight": "^3.15.3",
     "@tiptap/extension-mathematics": "^3.15.3",
+    "@tiptap/extension-placeholder": "^3.15.3",
     "@tiptap/extension-text-align": "^3.15.3",
     "@tiptap/extension-text-style": "^3.15.3",
     "@tiptap/extension-underline": "^3.15.3",

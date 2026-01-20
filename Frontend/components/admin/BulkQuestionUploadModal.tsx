@@ -48,9 +48,7 @@ export default function BulkQuestionUploadModal({
   onSuccess,
 }: BulkQuestionUploadModalProps) {
   const [markdownContent, setMarkdownContent] = useState(`# Sample Format - Copy and modify
-
 Q: What is the capital of Bangladesh?
-[image: https://example.com/question-image.jpg]
 A) Dhaka
 B) Chittagong
 C) Khulna
@@ -66,8 +64,6 @@ D) 11
 ANSWER: 3
 DESCRIPTION: A prime number is a natural number greater than 1 that has no positive divisors other than 1 and itself.
 
-Q: Write a short note on climate change.
-DESCRIPTION: Climate change refers to long-term shifts in temperatures and weather patterns.
 `);
   const [parsedQuestions, setParsedQuestions] = useState<ParsedQuestion[]>([]);
   const [loading, setLoading] = useState(false);

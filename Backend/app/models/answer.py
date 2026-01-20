@@ -1,3 +1,4 @@
+# app/models/answer.py
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DECIMAL, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB

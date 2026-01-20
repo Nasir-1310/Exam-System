@@ -17,80 +17,53 @@ export default function MathContentRenderer({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !content) return;
 
-    // Set the HTML content
-    containerRef.current.innerHTML = content;
+    // Decode HTML entities properly
+    const decodeHTML = (html: string) => {
+      const txt = document.createElement('textarea');
+      txt.innerHTML = html;
+      return txt.value;
+    };
 
-    // Find and render all math formulas
-    const mathElements = containerRef.current.querySelectorAll('.math-inline');
+    // First decode to get proper HTML
+    const decodedContent = decodeHTML(content);
     
+    // Set the decoded HTML
+    containerRef.current.innerHTML = decodedContent;
+
+    // Now find and render math elements
+    const mathElements = containerRef.current.querySelectorAll('.math-inline');
+
     mathElements.forEach((element) => {
-      const formula = element.getAttribute('data-value') || 
-                     element.textContent?.replace(/^\$|\$$/g, '') || '';
+      const formula = element.getAttribute('data-formula');
       
-      try {
-        katex.render(formula, element as HTMLElement, {
-          throwOnError: false,
-          displayMode: false,
-        });
-      } catch (error) {
-        console.error('KaTeX rendering error:', error);
-        element.textContent = `$${formula}$`;
+      if (formula) {
+        try {
+          // Clear everything
+          element.innerHTML = '';
+          
+          // Render KaTeX
+          katex.render(formula, element as HTMLElement, {
+            throwOnError: false,
+            displayMode: false,
+            trust: true,
+          });
+        } catch (error) {
+          console.error('KaTeX error:', error);
+          element.textContent = `[${formula}]`;
+        }
       }
     });
   }, [content]);
+
+  if (!content) return null;
 
   return (
     <div
       ref={containerRef}
       className={`prose prose-sm max-w-none ${className}`}
-      style={{
-        wordBreak: 'break-word',
-      }}
+      style={{ wordBreak: 'break-word' }}
     />
   );
 }
-
-// Add this to your global CSS file (globals.css or app.css)
-/*
-.prose strong {
-  font-weight: 700 !important;
-  color: inherit;
-}
-
-.prose em {
-  font-style: italic !important;
-  color: inherit;
-}
-
-.prose u {
-  text-decoration: underline !important;
-  color: inherit;
-}
-
-.prose p {
-  margin: 0.5em 0;
-}
-
-.prose ul,
-.prose ol {
-  margin: 0.5em 0;
-  padding-left: 1.5em;
-}
-
-.prose li {
-  margin: 0.25em 0;
-}
-
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4,
-.prose h5,
-.prose h6 {
-  font-weight: 600;
-  margin: 0.75em 0 0.5em 0;
-  color: inherit;
-}
-*/
