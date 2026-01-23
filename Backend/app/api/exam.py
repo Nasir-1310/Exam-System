@@ -2,8 +2,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
-from typing import List, Optional # Added Optional
-from app.services.exam_service import get_all_exams_service, create_exam_service, add_question_to_exam_service, add_mcq_bulk_to_exam_service, get_exam_service, update_exam_service, delete_exam_service, update_question_service, delete_question_service, submit_exam_service, get_detailed_exam_result_service
+from typing import List, Optional
+from app.services.exam_service import (
+    get_all_exams_service, 
+    create_exam_service, 
+    add_question_to_exam_service, 
+    add_mcq_bulk_to_exam_service, 
+    get_exam_service, 
+    update_exam_service, 
+    delete_exam_service, 
+    update_question_service, 
+    delete_question_service, 
+    submit_exam_service, 
+    get_detailed_exam_result_service
+)
 from app.services.google_drive_service import google_drive_service
 from app.schemas.exam import ExamCreateRequest, ExamResponse, ExamUpdateRequest, MCQBulkRequest, QuestionCreateRequest
 from app.schemas.result import ResultResponse, ResultDetailedResponse, AnswerCreate
@@ -25,32 +37,34 @@ def require_role(allowed_roles: list[str]):
 
 
 router = APIRouter(
-    prefix="/api/exam",
+    prefix="/api/exams",  # ✅ CHANGED: /api/exam → /api/exams
     tags=["Exam"]
 )
 
 
+# ✅ PUBLIC - Anyone can see exams
 @router.get("/", response_model=list[ExamResponse])
 async def get_all_exams(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
     course_id: Optional[int] = Query(None)
 ):
-    if current_user.role in ["ADMIN", "MODERATOR"] :
-        return await get_all_exams_service(db, user_id=None, course_id=None)
-    return await get_all_exams_service(db, user_id=current_user.id, course_id=course_id)
+    """Get all exams - public endpoint"""
+    return await get_all_exams_service(db, user_id=None, course_id=course_id)
 
 
+# ✅ ADMIN/MODERATOR only
 @router.post("/")
 async def create_exam(
     exam: ExamCreateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
 ):
-	res = await create_exam_service(exam, db)
-	return res
+    """Create new exam"""
+    res = await create_exam_service(exam, db)
+    return res
 
 
+# ✅ ADMIN/MODERATOR only
 @router.post("/{exam_id}/add-question", status_code=status.HTTP_201_CREATED)
 async def add_question_to_exam(
     exam_id: int,
@@ -65,23 +79,31 @@ async def add_question_to_exam(
         "question_id": result.id
     }
 
+
+# ✅ ADMIN/MODERATOR only
 @router.post("/{exam_id}/mcq-bulk")
-async def add_mcq_bulk_to_exam(exam_id: int, question_request: MCQBulkRequest, db: Session = Depends(get_db)):
-	res = await add_mcq_bulk_to_exam_service(exam_id, question_request, db)
-	return res
+async def add_mcq_bulk_to_exam(
+    exam_id: int, 
+    question_request: MCQBulkRequest, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+):
+    """Add multiple MCQ questions in bulk"""
+    res = await add_mcq_bulk_to_exam_service(exam_id, question_request, db)
+    return res
 
 
+# ✅ PUBLIC - Anyone can view exam details (but not answers)
 @router.get("/{exam_id}", response_model=ExamResponse)
 async def get_exam(
     exam_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
-    if current_user.role in ["ADMIN", "MODERATOR"]:
-        return await get_exam_service(exam_id, user_id=None, db=db)
-    return await get_exam_service(exam_id, current_user.id, db)
+    """Get exam details - public endpoint"""
+    return await get_exam_service(exam_id, user_id=None, db=db)
 
 
+# ✅ ADMIN/MODERATOR only
 @router.put("/{exam_id}")
 async def update_exam(
     exam_id: int,
@@ -89,17 +111,22 @@ async def update_exam(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
 ):
-	return await update_exam_service(exam_id, exam, db)
+    """Update exam details"""
+    return await update_exam_service(exam_id, exam, db)
 
 
+# ✅ ADMIN/MODERATOR only
 @router.delete("/{exam_id}")
-async def delete_exam(exam_id: int, db: Session = Depends(get_db)):
-	return await delete_exam_service(exam_id, db)
+async def delete_exam(
+    exam_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+):
+    """Delete exam"""
+    return await delete_exam_service(exam_id, db)
 
 
-# ============= এইখানে নতুন 2টি route add করুন =============
-
-# ADDED: প্রশ্ন সম্পাদনা করার API
+# ✅ ADMIN/MODERATOR only - Update question
 @router.put("/{exam_id}/questions/{question_id}", status_code=status.HTTP_200_OK)
 async def update_question(
     exam_id: int,
@@ -113,7 +140,7 @@ async def update_question(
     return result
 
 
-# ADDED: প্রশ্ন মুছে ফেলার API
+# ✅ ADMIN/MODERATOR only - Delete question
 @router.delete("/{exam_id}/questions/{question_id}", status_code=status.HTTP_200_OK)
 async def delete_question(
     exam_id: int,
@@ -126,6 +153,7 @@ async def delete_question(
     return result
 
 
+# ✅ AUTHENTICATED users only - Submit exam
 @router.post("/{exam_id}/submit", response_model=ResultResponse)
 async def submit_exam(
     exam_id: int,
@@ -133,31 +161,31 @@ async def submit_exam(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Submit exam answers"""
     return await submit_exam_service(db, exam_id, current_user.id, answers)
 
 
+# ✅ AUTHENTICATED users only - Get result
 @router.get("/{exam_id}/result/details", response_model=ResultDetailedResponse)
 async def get_detailed_exam_result(
     exam_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Get detailed exam result"""
     return await get_detailed_exam_result_service(db, exam_id, current_user.id)
 
 
+# ✅ ADMIN/MODERATOR only - Upload image
 @router.post("/upload-image")
 async def upload_image_to_drive(
     file: UploadFile = File(...),
     current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
 ):
-    """
-    Upload image to Google Drive and return shareable link
-    """
+    """Upload image to Google Drive and return shareable link"""
     try:
-        # Read file content
         file_content = await file.read()
 
-        # Upload to Google Drive (mock implementation)
         shareable_link = await google_drive_service.upload_image(
             file_content,
             file.filename,

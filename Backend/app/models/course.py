@@ -1,5 +1,5 @@
 # Backend/app/models/course.py
-from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, DECIMAL, Text
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, Date, ForeignKey, DECIMAL, Text
 from sqlalchemy.orm import relationship
 from app.lib.db import Base
 from app.models import UserCourseRelation
@@ -16,7 +16,11 @@ class Course(Base):
     discount = Column(DECIMAL, nullable=False)
     discount_start_date = Column(Date, nullable=False)
     discount_end_date = Column(Date, nullable=False)
+    is_free = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
+    is_deleted = Column(Boolean, default=False)
     
 
     exams = relationship("Exam", back_populates="course")
     users = relationship("User", secondary=UserCourseRelation, back_populates="courses") 
+    payments = relationship("Payment", back_populates="course")

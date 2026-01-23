@@ -242,200 +242,225 @@ class ApiService {
 
     return response.json();
   }
+// lib/api.ts - Line 241 এর কাছে
+async getAllExams(courseId?: number) {
+  let url = `${API_BASE_URL}/exams/`; // ✅ CHANGED: /exam/ → /exams/
+  if (courseId) {
+    url += `?course_id=${courseId}`;
+  }
+  const response = await fetch(url, {
+    headers: this.getHeaders(),
+  });
 
-  // Exam APIs
-  async getAllExams(courseId?: number) {
-    let url = `${API_BASE_URL}/exam/`;
-    if (courseId) {
-      url += `?course_id=${courseId}`;
-    }
-    const response = await fetch(url, {
-      headers: this.getHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch exams");
-    }
-
-    return response.json();
+  if (!response.ok) {
+    throw new Error("Failed to fetch exams");
   }
 
-  async getExamById(examId: number) {
-    const response = await fetch(`${API_BASE_URL}/exam/${examId}`, {
-      headers: this.getHeaders(),
-    });
+  return response.json();
+}
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to fetch exam");
-    }
+async getExamById(examId: number) {
+  const response = await fetch(`${API_BASE_URL}/exams/${examId}`, { // ✅ CHANGED
+    headers: this.getHeaders(),
+  });
 
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to fetch exam");
   }
 
-  async createExam(examData: any) {
-    const response = await fetch(`${API_BASE_URL}/exam/`, {
+  return response.json();
+}
+
+async createExam(examData: any) {
+  const response = await fetch(`${API_BASE_URL}/exams/`, { // ✅ CHANGED
+    method: "POST",
+    headers: this.getHeaders(),
+    body: JSON.stringify(examData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to create exam");
+  }
+
+  return response.json();
+}
+
+async updateExam(examId: number, examData: any) {
+  const response = await fetch(`${API_BASE_URL}/exams/${examId}`, { // ✅ CHANGED
+    method: "PUT",
+    headers: this.getHeaders(),
+    body: JSON.stringify(examData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to update exam");
+  }
+
+  return response.json();
+}
+
+async deleteExam(examId: number) {
+  const response = await fetch(`${API_BASE_URL}/exams/${examId}`, { // ✅ CHANGED
+    method: "DELETE",
+    headers: this.getHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to delete exam");
+  }
+
+  return response.json();
+}
+
+async addQuestionToExam(examId: number, questionData: any) {
+  const response = await fetch(
+    `${API_BASE_URL}/exams/${examId}/add-question`, // ✅ CHANGED
+    {
       method: "POST",
       headers: this.getHeaders(),
-      body: JSON.stringify(examData),
-    });
+      body: JSON.stringify(questionData),
+    },
+  );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to create exam");
-    }
-
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to add question");
   }
 
-  async updateExam(examId: number, examData: any) {
-    const response = await fetch(`${API_BASE_URL}/exam/${examId}`, {
-      method: "PUT",
+  return response.json();
+}
+
+async bulkUploadQuestions(examId: number, questionsData: any[]) {
+  const response = await fetch(
+    `${API_BASE_URL}/exams/${examId}/bulk-questions`, // ✅ CHANGED
+    {
+      method: "POST",
       headers: this.getHeaders(),
-      body: JSON.stringify(examData),
-    });
+      body: JSON.stringify({ questions: questionsData }),
+    },
+  );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to update exam");
-    }
-
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to bulk upload questions");
   }
 
-  async deleteExam(examId: number) {
-    const response = await fetch(`${API_BASE_URL}/exam/${examId}`, {
+  return response.json();
+}
+
+async deleteQuestion(examId: number, questionId: number) {
+  const response = await fetch(
+    `${API_BASE_URL}/exams/${examId}/questions/${questionId}`, // ✅ CHANGED
+    {
       method: "DELETE",
       headers: this.getHeaders(),
-    });
+    },
+  );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to delete exam");
-    }
-
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to delete question");
   }
 
-  async addQuestionToExam(examId: number, questionData: any) {
-    const response = await fetch(
-      `${API_BASE_URL}/exam/${examId}/add-question`,
-      {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(questionData),
-      },
-    );
+  return response.json();
+}
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to add question");
-    }
+async uploadImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
 
-    return response.json();
+  const response = await fetch(`${API_BASE_URL}/exams/upload-image`, { // ✅ CHANGED
+    method: "POST",
+    headers: this.getHeaders(),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to upload image");
   }
 
-  async bulkUploadQuestions(examId: number, questionsData: any[]) {
-    const response = await fetch(
-      `${API_BASE_URL}/exam/${examId}/bulk-questions`,
-      {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify({ questions: questionsData }),
-      },
-    );
+  return response.json();
+}
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to bulk upload questions");
-    }
-
-    return response.json();
-  }
-
-  async deleteQuestion(examId: number, questionId: number) {
-    const response = await fetch(
-      `${API_BASE_URL}/exam/${examId}/questions/${questionId}`,
-      {
-        method: "DELETE",
-        headers: this.getHeaders(),
-      },
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to delete question");
-    }
-
-    return response.json();
-  }
-
-  async uploadImage(file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch(`${API_BASE_URL}/exam/upload-image`, {
-      method: "POST",
+async updateQuestion(examId: number, questionId: number, questionData: any) {
+  const response = await fetch(
+    `${API_BASE_URL}/exams/${examId}/questions/${questionId}`, // ✅ CHANGED
+    {
+      method: "PUT",
       headers: this.getHeaders(),
-      body: formData,
-    });
+      body: JSON.stringify(questionData),
+    },
+  );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to upload image");
-    }
-
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to update question");
   }
 
-  async updateQuestion(examId: number, questionId: number, questionData: any) {
-    const response = await fetch(
-      `${API_BASE_URL}/exam/${examId}/questions/${questionId}`,
-      {
-        method: "PUT",
-        headers: this.getHeaders(),
-        body: JSON.stringify(questionData),
-      },
-    );
+  return response.json();
+}
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to update question");
-    }
+async submitExam(examId: number, answers: Answer[]): Promise<Result> {
+  const response = await fetch(`${API_BASE_URL}/exams/${examId}/submit`, { // ✅ CHANGED
+    method: "POST",
+    headers: this.getHeaders(),
+    body: JSON.stringify(answers),
+  });
 
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to submit exam");
   }
 
-  async submitExam(examId: number, answers: Answer[]): Promise<Result> {
-    const response = await fetch(`${API_BASE_URL}/exam/${examId}/submit`, {
-      method: "POST",
+  return response.json();
+}
+
+async getDetailedExamResult(examId: number): Promise<ResultDetailed> {
+  const response = await fetch(
+    `${API_BASE_URL}/exams/${examId}/result/details`, // ✅ CHANGED
+    {
       headers: this.getHeaders(),
-      body: JSON.stringify(answers),
-    });
+    },
+  );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to submit exam");
-    }
-
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to fetch detailed result");
   }
 
-  async getDetailedExamResult(examId: number): Promise<ResultDetailed> {
-    const response = await fetch(
-      `${API_BASE_URL}/exam/${examId}/result/details`,
-      {
-        headers: this.getHeaders(),
-      },
-    );
+  return response.json();
+}
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || "Failed to fetch detailed result");
-    }
+// Course APIs - এইগুলাও update করো
+async getCourseById(courseId: string) {
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, { // ✅ CHANGED
+    headers: this.getHeaders(),
+  });
 
-    return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to fetch course");
   }
+
+  return response.json();
+}
+
+async getAllCourses() {
+  const response = await fetch(`${API_BASE_URL}/courses/`, { // ✅ CHANGED
+    headers: this.getHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch courses");
+  }
+
+  return response.json();
+}
 }
 
 export const apiService = new ApiService();

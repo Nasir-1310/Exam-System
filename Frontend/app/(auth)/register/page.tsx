@@ -1,4 +1,4 @@
-// Frontend/app/(auth)/register/page.tsx - ALL ISSUES FIXED
+// Frontend/app/(auth)/register/page.tsx 
 'use client';
 
 import { useState } from 'react';

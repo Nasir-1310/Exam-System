@@ -15,7 +15,16 @@ class Result(Base):
     attempt_number = Column(Integer, nullable=False, default=1)
     exam_id = Column(Integer, ForeignKey("Exam.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("User.id"), nullable=False)
+    position = Column(Integer, nullable=True)  # rank
+    is_announced = Column(Boolean, default=False)
+    announced_at = Column(DateTime, nullable=True)
+    course_id = Column(Integer, ForeignKey("Course.id"), nullable=True)
+    session_id = Column(Integer, ForeignKey("ExamSession.id"), nullable=True)
+
+
 
     exam = relationship("Exam", back_populates="results")
     user = relationship("User", back_populates="results")
     answers_details = relationship("Answer", back_populates="result", cascade="all, delete-orphan") # Renamed for clarity
+    session = relationship("ExamSession", backref="result")
+    course = relationship("Course")
