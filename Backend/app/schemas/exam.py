@@ -2,62 +2,13 @@
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
-<<<<<<< HEAD
-
-
-class QuestionCreateRequest(BaseModel):
-    q_type: str
-
-    content: Optional[str] = None
-    image: Optional[str] = None
-
-    option_a: Optional[str] = None    
-    option_a_img: Optional[str] = None
-
-    option_b: Optional[str] = None
-    option_b_img: Optional[str] = None
-
-    option_c: Optional[str] = None
-    option_c_img: Optional[str] = None
-
-    option_d: Optional[str] = None
-    option_d_img: Optional[str] = None
-
-    answer: Optional[str] = None
-=======
 from decimal import Decimal
 from .question import QuestionCreateRequest
->>>>>>> origin/nasir
 
 
 class QuestionResponse(BaseModel):
     id: int
     q_type: str
-<<<<<<< HEAD
-
-    content: Optional[str] = None
-    image: Optional[str] = None
-
-    option_a: Optional[str] = None    
-    option_a_img: Optional[str] = None
-
-    option_b: Optional[str] = None
-    option_b_img: Optional[str] = None
-
-    option_c: Optional[str] = None
-    option_c_img: Optional[str] = None
-
-    option_d: Optional[str] = None
-    option_d_img: Optional[str] = None
-
-    answer: Optional[str] = None
-
-    # @validator("content", "image", pre=True)
-    # def check_content_and_image(cls, v):
-    #     if v is None:
-    #         raise ValueError("Content or image must be provided")
-    #     return v
-=======
     content: str
     image_url: Optional[str] = None
     description: Optional[str] = None
@@ -71,7 +22,6 @@ class QuestionResponse(BaseModel):
     option_c_image_url: Optional[str] = None
     option_d_image_url: Optional[str] = None
     answer_idx: Optional[int] = None
->>>>>>> origin/nasir
     
     class Config:
         from_attributes = True

@@ -7,7 +7,8 @@ from app.schemas.exam import (
     QuestionCreateRequest,
     MCQBulkRequest
 )
-from app.schemas.result import ResultCreate # Corrected import path
+from app.schemas.result import ResultCreate, ResultDetailedResponse # Corrected import path
+from app.schemas.question import QuestionResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload

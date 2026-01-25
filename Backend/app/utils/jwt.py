@@ -6,7 +6,6 @@ from uuid import UUID
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.lib.db import get_db

@@ -11,28 +11,6 @@ class AnswerCreate(BaseModel):
 
 
 class AnswerResponse(BaseModel):
-<<<<<<< HEAD
-	question: QuestionResponse
-	answer: int
-	is_correct: bool
-	
-	class Config:
-		from_attributes = True
-
-
-class ResultResponse(BaseModel):
-	id: int
-	exam_id: int
-	user_id: int
-	mark: float
-	correct_answers: int
-	incorrect_answers: int
-	created_at: Optional[datetime] = None
-	publish_time: Optional[datetime] = None
-	
-	class Config:
-		from_attributes = True
-=======
     id: int
     question_id: int
     exam_id: int
@@ -68,7 +46,6 @@ class ResultResponse(BaseModel):
     
     class Config:
         from_attributes = True
->>>>>>> origin/nasir
 
 
 class ResultDetailedResponse(ResultResponse):
