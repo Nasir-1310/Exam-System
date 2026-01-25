@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from app.lib.config import settings
