@@ -1,23 +1,24 @@
-// components/exam/ResultSummary.tsx
+'use client';
+
+import { ResultDetailed, Exam } from '@/lib/types';
+
 interface ResultSummaryProps {
-  totalMark: string;
-  totalMarks: number;
-  correctCount: number;
-  wrongCount: number;
-  skipped: number;
-  examTitle: string;
+  result: ResultDetailed;
+  exam: Exam;
 }
 
 export default function ResultSummary({
-  totalMark,
-  totalMarks,
-  correctCount,
-  wrongCount,
-  skipped,
-  examTitle,
+  result,
+  exam,
 }: ResultSummaryProps) {
-  const percentage = ((parseFloat(totalMark) / totalMarks) * 100).toFixed(2);
-  const passed = parseFloat(percentage) >= 40;
+  const totalMark = result.mark;
+  const totalPossibleMarks = exam.mark; // Total possible marks from the exam
+  const correctCount = result.correct_answers;
+  const wrongCount = result.incorrect_answers;
+  const skippedCount = exam.questions.length - (correctCount + wrongCount); // Assuming skipped are neither correct nor incorrect
+
+  const percentage = ((totalMark / totalPossibleMarks) * 100).toFixed(2);
+  const passed = parseFloat(percentage) >= 40; // Assuming 40% is pass mark
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-8">
@@ -29,15 +30,15 @@ export default function ResultSummary({
         >
           {passed ? "PASSED ✓" : "FAILED ✗"}
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{examTitle}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{exam.title}</h1>
         <p className="text-gray-600">Exam Result</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6">
           <p className="text-blue-600 text-sm font-medium mb-2">Total Score</p>
-          <p className="text-4xl font-bold text-blue-900">{totalMark}</p>
-          <p className="text-blue-700 text-sm mt-1">out of {totalMarks} marks</p>
+          <p className="text-4xl font-bold text-blue-900">{totalMark.toFixed(2)}</p>
+          <p className="text-blue-700 text-sm mt-1">out of {totalPossibleMarks} marks</p>
         </div>
 
         <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6">
@@ -104,7 +105,7 @@ export default function ResultSummary({
               />
             </svg>
           </div>
-          <p className="text-3xl font-bold text-gray-600">{skipped}</p>
+          <p className="text-3xl font-bold text-gray-600">{skippedCount}</p>
           <p className="text-sm text-gray-600 mt-1">Skipped</p>
         </div>
       </div>

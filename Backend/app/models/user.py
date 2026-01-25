@@ -1,5 +1,5 @@
 # Backend/app/models/user.py
-from sqlalchemy import Column, Integer, String, Boolean, Date, ForeignKey, DECIMAL, Text
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, Date, ForeignKey, DECIMAL, Text
 from sqlalchemy.orm import relationship
 from app.lib.db import Base
 from app.models import UserCourseRelation
@@ -21,6 +21,11 @@ class User(Base):
     # Personal info
     dob = Column(Date, nullable=True)
     last_login = Column(Date, nullable=True)
+
+    is_active = Column(Boolean, default=True)
+    is_banned = Column(Boolean, default=False)
+    banned_at = Column(DateTime, nullable=True)
+    banned_reason = Column(Text, nullable=True)
     
     # Role - FIXED: Use String type instead of enum for async compatibility
     role = Column(String(50), nullable=False, default="USER")
@@ -28,4 +33,4 @@ class User(Base):
     # Relationships
     results = relationship("Result", back_populates="user")
     courses = relationship("Course", secondary=UserCourseRelation, back_populates="users")
-    admission_requests = relationship("AdmissionRequest", back_populates="user")
+    payments = relationship("Payment", back_populates="user")

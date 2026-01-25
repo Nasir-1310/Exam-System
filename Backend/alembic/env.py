@@ -24,17 +24,32 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 from app.lib.db import Base
+
+# Import all models to ensure Base.metadata is fully populated
+from app.models import user  # noqa
+from app.models import course  # noqa
+from app.models import exam  # noqa
+from app.models import question  # noqa
+from app.models import result  # noqa
+from app.models import answer  # noqa
+from app.models import user_course  # noqa
+
+# NEW MODELS - ADD THESE IMPORTS
+from app.models import exam_session  # noqa
+from app.models import user_course_access  # noqa
+from app.models import user_exam_access  # noqa
+from app.models import result_announcement  # noqa
+from app.models import exam_schedule  # noqa
+from app.models import payment  # noqa
+from app.models import enums  # noqa - Import enums to ensure they're registered
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-
-
 
 
 def run_migrations_offline() -> None:

@@ -68,6 +68,12 @@ Backend/__pycache__/
 Backend/*.py[cod]
 Backend/*$py.class
 Backend/.Python
+Backend/**/__pycache__/
+Backend/**/**/__pycache__/
+Backend/app/**/__pycache__/
+Backend/app/**/**/__pycache__/
+Backend/app/**/**/**/__pycache__/
+
 
 # Flask/Django
 Backend/instance/
@@ -157,3 +163,14 @@ Thumbs.db
 # Frontend/package-lock.json
 # Frontend/yarn.lock
 # Backend/requirements.txt
+
+
+# Uploaded question images (not tracked in git)
+/public/questions/*.jpg
+/public/questions/*.jpeg
+/public/questions/*.png
+/public/questions/*.gif
+/public/questions/*.webp
+
+# But keep the folder structure
+!/public/questions/.gitkeep

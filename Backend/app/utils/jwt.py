@@ -15,7 +15,7 @@ from sqlalchemy import select
 from app.lib.config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/api/auth/login/docs",
+    tokenUrl="/api/login/docs",
     scheme_name="JWT",
 )
 

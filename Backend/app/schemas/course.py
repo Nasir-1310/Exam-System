@@ -1,9 +1,9 @@
+# Backend/app/schemas/course.py
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Any
 from datetime import date
 from decimal import Decimal
 
-# Course Schemas
 class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
@@ -14,6 +14,7 @@ class CourseBase(BaseModel):
     discount: Decimal
     discount_start_date: date
     discount_end_date: date
+    is_free: bool = False  # ADD THIS
 
 class CourseCreate(CourseBase):
     pass
@@ -27,6 +28,7 @@ class CourseUpdate(CourseBase):
     discount: Optional[Decimal] = None
     discount_start_date: Optional[date] = None
     discount_end_date: Optional[date] = None
+    is_free: Optional[bool] = None  # ADD THIS
     
 class CourseResponse(CourseBase):
     id: int

@@ -9,10 +9,21 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tiptap/extension-color": "^3.15.3",
+    "@tiptap/extension-highlight": "^3.15.3",
+    "@tiptap/extension-mathematics": "^3.15.3",
+    "@tiptap/extension-placeholder": "^3.15.3",
+    "@tiptap/extension-text-align": "^3.15.3",
+    "@tiptap/extension-text-style": "^3.15.3",
+    "@tiptap/extension-underline": "^3.15.3",
+    "@tiptap/react": "^3.15.3",
+    "@tiptap/starter-kit": "^3.15.3",
+    "katex": "^0.16.27",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "sweetalert2": "^11.26.17"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
