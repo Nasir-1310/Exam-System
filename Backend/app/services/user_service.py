@@ -9,6 +9,7 @@ from app.schemas.user import UserUpdate
 from app.utils.hashing import get_password_hash
 from app.models.enums import UserRole
 from typing import List, Optional
+import secrets
 
 
 async def get_user_by_email(db: AsyncSession, email: str):
@@ -42,7 +43,8 @@ async def create_user(db: AsyncSession, payload: RegisterRequest):
             active_mobile=payload.active_mobile,
             whatsapp=payload.whatsapp,
             dob=payload.dob,
-           role=payload.role if payload.role else UserRole.USER.value 
+            role=payload.role if payload.role else UserRole.USER.value,
+            is_anonymous=bool(getattr(payload, "is_anonymous", False))
         )
         
         db.add(user)
@@ -97,9 +99,17 @@ async def enroll_user_in_course(db: AsyncSession, user_id: int, course_id: int):
 
 
 async def get_all_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
-    """Get all users with pagination"""
+    """Get all non-anonymous users with pagination"""
     result = await db.execute(
-        select(User).offset(skip).limit(limit)
+        select(User).where(User.is_anonymous == False).offset(skip).limit(limit)
+    )
+    return result.scalars().all()
+
+
+async def get_anonymous_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[User]:
+    """Get anonymous users with pagination"""
+    result = await db.execute(
+        select(User).where(User.is_anonymous == True).offset(skip).limit(limit)
     )
     return result.scalars().all()
 
@@ -153,3 +163,26 @@ async def delete_user(db: AsyncSession, user_id: int) -> bool:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete user"
         )
+
+
+async def create_or_get_anonymous_user(db: AsyncSession, name: str, email: str, active_mobile: Optional[str] = None) -> User:
+    """Fetch user by email; if none, create an is_anonymous user with random password."""
+    existing = await get_user_by_email(db, email)
+    if existing:
+        return existing
+
+    random_password = secrets.token_hex(8)
+    user = User(
+        name=name,
+        email=email,
+        password_hash=get_password_hash(random_password),
+        active_mobile=active_mobile,
+        role=UserRole.USER.value,
+        is_anonymous=True,
+        is_active=True
+    )
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user

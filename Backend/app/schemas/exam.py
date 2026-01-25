@@ -12,7 +12,6 @@ class QuestionResponse(BaseModel):
     content: str
     image_url: Optional[str] = None
     description: Optional[str] = None
-    options: Optional[List[str]] = None
     option_a: Optional[str] = None
     option_b: Optional[str] = None
     option_c: Optional[str] = None
@@ -21,7 +20,7 @@ class QuestionResponse(BaseModel):
     option_b_image_url: Optional[str] = None
     option_c_image_url: Optional[str] = None
     option_d_image_url: Optional[str] = None
-    answer_idx: Optional[int] = None
+    answer: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -39,6 +38,7 @@ class ExamCreateRequest(BaseModel):
     exam_type: str = Field(default="REGULAR")
     is_active: bool = Field(default=True)
     allow_multiple_attempts: bool = Field(default=False)
+    end_time: Optional[str] = None  # Optional override; otherwise calculated
     show_detailed_results_after: Optional[str] = None
     price: Optional[Decimal] = None  # ADD THIS - for paid exams
     is_free: bool = Field(default=False)  # ADD THIS
@@ -50,6 +50,7 @@ class ExamCreateRequest(BaseModel):
                 "title": "47th BCS Preliminary Mock Test",
                 "description": "Complete mock test",
                 "start_time": "2026-01-20T10:00:00Z",
+                "end_time": "2026-01-20",
                 "duration_minutes": 120,
                 "mark": 200,
                 "minus_mark": 0.5,

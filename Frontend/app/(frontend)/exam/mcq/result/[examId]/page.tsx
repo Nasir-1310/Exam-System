@@ -19,13 +19,38 @@ export default function MCQExamResultPage() {
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showDetailedResults, setShowDetailedResults] = useState(false);
+  const [showDetailedResults, setShowDetailedResults] = useState(true);
 
   useEffect(() => {
     const fetchResult = async () => {
       try {
         setLoading(true);
-        const fetchedResult = await apiService.getDetailedExamResult(examId);
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("token") || ""
+            : "";
+        const anonStr =
+          typeof window !== "undefined"
+            ? localStorage.getItem("anonymous_user")
+            : null;
+
+        let fetchedResult: ResultDetailed | null = null;
+
+        if (token) {
+          fetchedResult = await apiService.getDetailedExamResult(examId);
+        } else if (anonStr) {
+          const anon = JSON.parse(anonStr) as { email?: string };
+          if (!anon.email) {
+            throw new Error("Not authenticated");
+          }
+          fetchedResult = await apiService.getDetailedExamResultAnonymous(
+            examId,
+            anon.email,
+          );
+        } else {
+          throw new Error("Not authenticated");
+        }
+
         setResult(fetchedResult);
 
         // Also fetch exam details to display title and other info
@@ -67,7 +92,7 @@ export default function MCQExamResultPage() {
   // Check if exam has no questions
   if (!exam.questions || exam.questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-100 py-8">
+      <div className="min-h-screen bg-gray-100 py-8 mt-12">
         <div className="container mx-auto px-4 max-w-4xl">
           <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">{exam.title}</h1>
           
@@ -93,92 +118,103 @@ export default function MCQExamResultPage() {
     );
   }
 
-  const isDetailedResultsVisible = exam.show_detailed_results_after ? new Date() >= new Date(exam.show_detailed_results_after) : false; // Default to false if not set
+  const isDetailedResultsVisible = !exam.show_detailed_results_after || new Date() >= new Date(exam.show_detailed_results_after);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="container mx-auto px-4">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">{exam.title}</h1>
-        
-        {/* ADDED: Display exam description if available */}
-        {exam.description && (
-          <MathContentRenderer 
-            content={exam.description}
-            className="text-gray-600 text-center mb-8"
-          />
-        )}
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 py-10 mt-12">
+      <div className="mx-auto w-full max-w-6xl px-4 space-y-6">
+        <div className="flex flex-col gap-3 text-center">
+          <p className="text-sm font-semibold text-slate-500 uppercase tracking-[0.14em]">MCQ Result</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">{exam.title}</h1>
+          {exam.description && (
+            <MathContentRenderer 
+              content={exam.description}
+              className="text-slate-600 text-base md:text-lg max-w-4xl mx-auto"
+            />
+          )}
+        </div>
 
         <ResultSummary result={result} exam={exam} />
 
-        {isDetailedResultsVisible && (
-          <div className="mt-8">
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">প্রশ্নের বিস তারিত উত্তর</h2>
-                <button
-                  onClick={() => setShowDetailedResults(!showDetailedResults)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {showDetailedResults ? 'সারাংশ দেখুন' : 'বিস্তারিত দেখুন'}
-                </button>
+        {isDetailedResultsVisible ? (
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-white/90 border border-slate-200 rounded-2xl shadow-sm p-4 md:p-5">
+              <div className="text-left">
+                <h2 className="text-xl font-semibold text-slate-900">প্রশ্ন ও উত্তর</h2>
+                <p className="text-slate-600 text-sm mt-1">
+                  {showDetailedResults
+                    ? 'প্রতিটি প্রশ্নের নির্বাচিত উত্তর ও সঠিক উত্তর দেখানো হচ্ছে'
+                    : 'বাটনে ক্লিক করে সঠিক/ভুল মার্কিংসহ বিস্তারিত দেখুন'}
+                </p>
               </div>
-              <p className="text-gray-600 mt-2">
-                {showDetailedResults
-                  ? 'সব প্রশ্নের বিস্তারিত উত্তর এবং ব্যাখ্যা দেখতে পারবেন'
-                  : 'প্রশ্নের সারাংশ দেখতে বিস্তারিত বাটন ক্লিক করুন'
-                }
-              </p>
+              <button
+                onClick={() => setShowDetailedResults(!showDetailedResults)}
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-800 bg-white hover:border-slate-400 transition-colors"
+              >
+                {showDetailedResults ? 'শুধু সারাংশ' : 'বিস্তারিত দেখুন'}
+              </button>
             </div>
 
-            {showDetailedResults && (
-              <div className="space-y-4">
-                {exam.questions.map((question, index: number) => {
-                  const answerDetail = result.answers_details.find(a => a.question_id === question.id);
+            <div className="space-y-3 md:space-y-4">
+              {exam.questions.map((question, index: number) => {
+                const answerDetail = result.answers_details.find(a => a.question_id === question.id);
 
-                  // Create a placeholder answer detail for skipped questions
-                  const displayAnswerDetail: AnswerDetail = answerDetail || {
-                    id: -1,
-                    question_id: question.id,
-                    exam_id: exam.id,
-                    result_id: result.id,
-                    selected_option: null,
-                    submitted_answer_text: null,
-                    is_correct: false,
-                    correct_option_index: question.answer_idx || 0,
-                    marks_obtained: 0
-                  };
+                const resolveCorrectIndex = () => {
+                  const raw = (question as any).answer as string | undefined;
+                  if (!raw) return null;
+                  const normalized = raw.trim().toUpperCase();
+                  const map: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+                  if (normalized in map) return map[normalized];
+                  const maybeNumber = Number(normalized);
+                  if (!Number.isNaN(maybeNumber) && maybeNumber >= 1 && maybeNumber <= 4) {
+                    return maybeNumber - 1;
+                  }
+                  return null;
+                };
 
-                  return (
-                    <QuestionResult
-                      key={question.id}
-                      answerDetail={displayAnswerDetail}
-                      question={question}
-                      showDetails={showDetailedResults}
-                      isSkipped={!answerDetail}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+                // Create a placeholder answer detail for skipped questions
+                const displayAnswerDetail: AnswerDetail = answerDetail || {
+                  id: -1,
+                  question_id: question.id,
+                  exam_id: exam.id,
+                  result_id: result.id,
+                  selected_option: null,
+                  submitted_answer_text: null,
+                  is_correct: false,
+                  correct_option_index: resolveCorrectIndex(),
+                  marks_obtained: 0
+                };
 
-        {!isDetailedResultsVisible && exam.show_detailed_results_after && (
-          <div className="bg-white rounded-lg shadow-md p-8 mt-8 text-center text-gray-700">
-            <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">বিস্তারিত ফলাফল এখনো উপলব্ধ নয়</h3>
-            <p className="text-gray-600">
-              বিস্তারিত ফলাফল দেখা যাবে {new Date(exam.show_detailed_results_after).toLocaleString('bn-BD', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                return (
+                  <QuestionResult
+                    key={question.id}
+                    answerDetail={displayAnswerDetail}
+                    question={question}
+                    showDetails={showDetailedResults}
+                    isSkipped={!answerDetail}
+                  />
+                );
               })}
-            </p>
+            </div>
           </div>
+        ) : (
+          exam.show_detailed_results_after && (
+            <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-8 mt-2 text-center text-slate-700">
+              <svg className="w-14 h-14 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-slate-900 mb-1">বিস্তারিত ফলাফল এখনো উপলব্ধ নয়</h3>
+              <p className="text-slate-600">
+                বিস্তারিত ফলাফল দেখা যাবে {new Date(exam.show_detailed_results_after).toLocaleString('bn-BD', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </p>
+            </div>
+          )
         )}
       </div>
     </div>

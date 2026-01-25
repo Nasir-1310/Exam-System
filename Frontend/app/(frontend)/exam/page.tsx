@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiService } from "@/lib/api";
+import Swal from "sweetalert2";
 
 interface Exam {
   id: number;
@@ -14,6 +15,7 @@ interface Exam {
   minus_mark: number;
   course_id: number | null;
   questions: any[];
+  is_mcq: boolean;
 }
 
 export default function ExamPage() {
@@ -42,9 +44,25 @@ export default function ExamPage() {
   };
 
   const handleExamClick = (exam: Exam) => {
-    // For now, all exams go to MCQ
-    // Later you can add logic to check exam type
-    router.push(`/exam/mcq/${exam.id}`);
+    console.log("Navigating to exam:", exam);
+    const startTime = new Date(exam.start_time);
+    const now = new Date();
+
+    if (now < startTime) {
+      Swal.fire({
+        icon: "info",
+        title: "পরীক্ষা শুরু হয়নি",
+        text: `এই পরীক্ষা শুরু হবে: ${startTime.toLocaleString()}`,
+        confirmButtonText: "ঠিক আছে",
+      });
+      return;
+    }
+
+    if (exam.is_mcq) {
+      router.push(`/exam/mcq/${exam.id}`);
+    } else {
+      router.push(`/exam/written/${exam.id}`);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -59,9 +77,9 @@ export default function ExamPage() {
 
   const filteredExams = exams.filter((exam) => {
     if (filter === "all") return true;
-    // Add your filter logic here based on exam type
-    // For now returning all as MCQ
-    return filter === "mcq";
+    if (filter === "mcq") return exam.is_mcq;
+    if (filter === "written") return !exam.is_mcq;
+    return true;
   });
 
   if (loading) {

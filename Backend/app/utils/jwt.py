@@ -39,15 +39,21 @@ def decode_token(token: str) -> dict:
 
 async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
     try:
+        print("Decoding token:", token)
         payload = decode_token(token)
         user_id = payload.get("sub")
         try:
             user_id = int(user_id) if user_id else None
+            print("Extracted user_id:", user_id)
         except (ValueError, TypeError):
+             print("Invalid user_id in token payload:", user_id)
              user_id = None
+        print("Fetching user from DB with ID:", user_id)
              
         if user_id is None:
+            print("User ID is None, invalid token payload")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+        
             
         result = await db.execute(select(User).filter(User.id == user_id))
         user = result.scalar_one_or_none()
@@ -57,6 +63,7 @@ async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depe
         return user
     except JWTError as e:
         print("JWT Error:", str(e))
+        print("Failed to decode token:", token)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
 

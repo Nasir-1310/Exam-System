@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     role: Optional[UserRole] = None
     active_mobile: Optional[str] = None
     whatsapp: Optional[str] = None
+    is_anonymous: Optional[bool] = False
 
 class UserCreate(UserBase):
     email: EmailStr
@@ -19,6 +20,7 @@ class UserCreate(UserBase):
     role: Optional[UserRole] = UserRole.USER
     active_mobile: Optional[str] = None
     whatsapp: Optional[str] = None
+    is_anonymous: Optional[bool] = False
 
 class UserUpdate(UserBase):
     role: Optional[UserRole] = None

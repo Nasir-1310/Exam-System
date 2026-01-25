@@ -1,9 +1,12 @@
 # Backend/app/api/exam.py
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
+from fastapi import Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Annotated
 import os
+import shutil
+import uuid
 from typing import List, Optional
 from app.services.exam_service import (
     get_all_exams_service, 
@@ -16,11 +19,13 @@ from app.services.exam_service import (
     update_question_service, 
     delete_question_service, 
     submit_exam_service, 
-    get_detailed_exam_result_service
+    submit_exam_anonymous_service,
+    get_detailed_exam_result_service,
+    get_detailed_exam_result_anonymous_service
 )
 from app.services.google_drive_service import google_drive_service
 from app.schemas.exam import ExamCreateRequest, ExamResponse, ExamUpdateRequest, MCQBulkRequest, QuestionCreateRequest
-from app.schemas.result import ResultResponse, ResultDetailedResponse, AnswerCreate
+from app.schemas.result import ResultResponse, ResultDetailedResponse, AnswerCreate, AnonymousExamSubmitRequest
 
 from app.lib.db import get_db
 from app.utils.jwt import get_current_user
@@ -72,33 +77,86 @@ async def create_exam(
 @router.post("/{exam_id}/add-question", status_code=status.HTTP_201_CREATED)
 async def add_question_to_exam(
     exam_id: int,
-    question: QuestionCreateRequest = Depends(),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"])),
+    request: Request,
+    # Multipart form fields (optional)
+    q_type: Optional[str] = Form(None),
+    content: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    option_a: Optional[str] = Form(None),
+    option_b: Optional[str] = Form(None),
+    option_c: Optional[str] = Form(None),
+    option_d: Optional[str] = Form(None),
+    answer: Optional[str] = Form(None),
     image: UploadFile = File(None),
     option_a_img: UploadFile = File(None),
     option_b_img: UploadFile = File(None),
     option_c_img: UploadFile = File(None),
-    option_d_img: UploadFile = File(None)
+    option_d_img: UploadFile = File(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
 ):
-    """Add a single question to existing exam, with optional image uploads"""
-    def save_image(file):
-        if file:
-            public_dir = os.path.join(os.path.dirname(__file__), "../../public")
-            os.makedirs(public_dir, exist_ok=True)
-            file_path = os.path.join(public_dir, file.filename)
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            return f"/public/{file.filename}"
-        return None
+    """Add a single question to existing exam.
 
-    question.image = save_image(image)
-    question.option_a_img = save_image(option_a_img)
-    question.option_b_img = save_image(option_b_img)
-    question.option_c_img = save_image(option_c_img)
-    question.option_d_img = save_image(option_d_img)
+    Supports:
+    - Pure JSON (send QuestionCreateRequest in body)
+    - Multipart form with text fields + optional image files
+    """
+
+    def save_image(file: UploadFile | None):
+        if not file:
+            return None
+        uploads_dir = os.path.join(os.path.dirname(__file__), "../../public/uploads/questions")
+        os.makedirs(uploads_dir, exist_ok=True)
+        ext = os.path.splitext(file.filename or "")[1] or ".jpg"
+        filename = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(uploads_dir, filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return f"/public/uploads/questions/{filename}"
+
+    content_type = request.headers.get("content-type", "").lower()
+    question: QuestionCreateRequest
+
+    if content_type.startswith("application/json"):
+        payload = await request.json()
+        try:
+            question = QuestionCreateRequest(**payload)
+        except Exception as exc:  # validation errors
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    else:
+        if not q_type or not content:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="q_type and content are required")
+
+        question = QuestionCreateRequest(
+            q_type=q_type,
+            content=content,
+            image_url=None,
+            description=description,
+            option_a=option_a,
+            option_b=option_b,
+            option_c=option_c,
+            option_d=option_d,
+            answer=answer,
+            option_a_image_url=None,
+            option_b_image_url=None,
+            option_c_image_url=None,
+            option_d_image_url=None,
+        )
+
+    # If files provided, override image URLs with saved paths
+    if image:
+        question.image_url = save_image(image)
+    if option_a_img:
+        question.option_a_image_url = save_image(option_a_img)
+    if option_b_img:
+        question.option_b_image_url = save_image(option_b_img)
+    if option_c_img:
+        question.option_c_image_url = save_image(option_c_img)
+    if option_d_img:
+        question.option_d_image_url = save_image(option_d_img)
 
     result = await add_question_to_exam_service(db, exam_id, question)
+    print("Added question result:", result)
     return {
         "message": "Question added successfully",
         "question_id": result.id
@@ -221,6 +279,23 @@ async def submit_exam(
     return await submit_exam_service(db, exam_id, current_user.id, answers)
 
 
+# ✅ PUBLIC - Anonymous submit (creates/fetches an anonymous user)
+@router.post("/{exam_id}/submit/anonymous", response_model=ResultResponse)
+async def submit_exam_anonymous(
+    exam_id: int,
+    payload: AnonymousExamSubmitRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    return await submit_exam_anonymous_service(
+        db,
+        exam_id,
+        name=payload.name,
+        email=payload.email,
+        active_mobile=payload.active_mobile,
+        answers=payload.answers
+    )
+
+
 # ✅ AUTHENTICATED users only - Get result
 @router.get("/{exam_id}/result/details", response_model=ResultDetailedResponse)
 async def get_detailed_exam_result(
@@ -230,6 +305,17 @@ async def get_detailed_exam_result(
 ):
     """Get detailed exam result"""
     return await get_detailed_exam_result_service(db, exam_id, current_user.id)
+
+
+# ✅ PUBLIC - Get result for anonymous user by email
+@router.get("/{exam_id}/result/details/anonymous", response_model=ResultDetailedResponse)
+async def get_detailed_exam_result_anonymous(
+    exam_id: int,
+    email: str = Query(..., description="Email used for anonymous submission"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Fetch latest result for an anonymous user via email."""
+    return await get_detailed_exam_result_anonymous_service(db, exam_id, email)
 
 
 # ✅ ADMIN/MODERATOR only - Upload image

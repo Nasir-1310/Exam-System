@@ -21,92 +21,60 @@ export default function ResultSummary({
   const passed = parseFloat(percentage) >= 40; // Assuming 40% is pass mark
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-8">
-      <div className="text-center mb-8">
-        <div
-          className={`inline-block px-6 py-2 rounded-full text-lg font-bold mb-4 ${
-            passed ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-          }`}
-        >
-          {passed ? "PASSED ✓" : "FAILED ✗"}
+    <div className="bg-white/90 border border-slate-200 rounded-2xl shadow-md p-6 md:p-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4 md:mb-6">
+        <div className="flex items-center gap-3">
+          <span
+            className={`px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide ${
+              passed ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+            }`}
+          >
+            {passed ? "Passed" : "Failed"}
+          </span>
+          <p className="text-sm text-slate-500">Exam Result Snapshot</p>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{exam.title}</h1>
-        <p className="text-gray-600">Exam Result</p>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6">
-          <p className="text-blue-600 text-sm font-medium mb-2">Total Score</p>
-          <p className="text-4xl font-bold text-blue-900">{totalMark.toFixed(2)}</p>
-          <p className="text-blue-700 text-sm mt-1">out of {totalPossibleMarks} marks</p>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6">
-          <p className="text-purple-600 text-sm font-medium mb-2">Percentage</p>
-          <p className="text-4xl font-bold text-purple-900">{percentage}%</p>
-          <p className="text-purple-700 text-sm mt-1">Pass mark: 40%</p>
+        <div className="text-sm text-slate-600 flex items-center gap-2">
+          <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-medium">
+            Total {exam.mark} marks
+          </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="text-center p-4 bg-green-50 rounded-lg">
-          <div className="flex items-center justify-center mb-2">
-            <svg
-              className="w-8 h-8 text-green-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+      <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-6 leading-tight">
+        {exam.title}
+      </h1>
+
+      <div className="grid md:grid-cols-2 gap-5 mb-6">
+        <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-sky-50 to-white p-5">
+          <p className="text-sky-700 text-xs font-semibold uppercase tracking-wide mb-2">Score</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-4xl font-bold text-sky-900">{totalMark.toFixed(2)}</p>
+            <span className="text-sm text-sky-600">/ {totalPossibleMarks}</span>
           </div>
-          <p className="text-3xl font-bold text-green-600">{correctCount}</p>
-          <p className="text-sm text-gray-600 mt-1">Correct</p>
+          <p className="text-sky-700 text-sm mt-1">Marks earned</p>
         </div>
 
-        <div className="text-center p-4 bg-red-50 rounded-lg">
-          <div className="flex items-center justify-center mb-2">
-            <svg
-              className="w-8 h-8 text-red-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </div>
-          <p className="text-3xl font-bold text-red-600">{wrongCount}</p>
-          <p className="text-sm text-gray-600 mt-1">Wrong</p>
+        <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5">
+          <p className="text-emerald-700 text-xs font-semibold uppercase tracking-wide mb-2">Percentage</p>
+          <p className="text-4xl font-bold text-emerald-900">{percentage}%</p>
+          <p className="text-emerald-700 text-sm mt-1">Pass mark: 40%</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="text-center p-4 rounded-xl border border-emerald-100 bg-emerald-50/70">
+          <p className="text-sm font-semibold text-emerald-800">Correct</p>
+          <p className="text-3xl font-bold text-emerald-900 mt-1">{correctCount}</p>
         </div>
 
-        <div className="text-center p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center justify-center mb-2">
-            <svg
-              className="w-8 h-8 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <p className="text-3xl font-bold text-gray-600">{skippedCount}</p>
-          <p className="text-sm text-gray-600 mt-1">Skipped</p>
+        <div className="text-center p-4 rounded-xl border border-rose-100 bg-rose-50/70">
+          <p className="text-sm font-semibold text-rose-800">Wrong</p>
+          <p className="text-3xl font-bold text-rose-900 mt-1">{wrongCount}</p>
+        </div>
+
+        <div className="text-center p-4 rounded-xl border border-slate-200 bg-slate-50">
+          <p className="text-sm font-semibold text-slate-800">Skipped</p>
+          <p className="text-3xl font-bold text-slate-900 mt-1">{skippedCount}</p>
         </div>
       </div>
     </div>

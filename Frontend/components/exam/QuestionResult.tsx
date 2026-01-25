@@ -14,8 +14,32 @@ interface QuestionResultProps {
 
 export default function QuestionResult({ answerDetail, question, showDetails, isSkipped = false }: QuestionResultProps) {
   const userSelectedOption = answerDetail.selected_option;
-  const correctOption = question.answer_idx;
-  
+  const letterToIndex = (value?: string | null): number | null => {
+    if (!value) return null;
+    const normalized = value.trim().toUpperCase();
+    const map: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+    if (normalized in map) return map[normalized];
+    if (!Number.isNaN(Number(normalized))) {
+      const num = Number(normalized);
+      if (num >= 1 && num <= 4) return num - 1;
+    }
+    return null;
+  };
+
+  const correctOption = answerDetail.correct_option_index ?? letterToIndex((question as any).answer);
+
+  const indexToLetter = (idx: number | null | undefined) => {
+    if (idx === null || idx === undefined) return null;
+    return ['A', 'B', 'C', 'D'][idx] ?? null;
+  };
+
+  const optionTextByIndex = (idx: number | null | undefined): string | null => {
+    if (idx === null || idx === undefined) return null;
+    if (question.options && question.options[idx]) return question.options[idx];
+    const key = ['option_a', 'option_b', 'option_c', 'option_d'][idx] as keyof Question;
+    return (question as any)[key] || null;
+  };
+
   // Fix: Check if marks were obtained instead of just is_correct flag
   const isCorrect = isSkipped ? false : (answerDetail.is_correct || answerDetail.marks_obtained > 0);
 
@@ -77,43 +101,45 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
   // ============================================================================
 
   const getOptionClass = (optionIndex: number) => {
-    if (!showDetails) return 'border-gray-200 bg-gray-50';
+    const isCorrectOption = optionIndex === correctOption;
 
-    // Always show correct answer
-    if (optionIndex === correctOption) {
-      return 'border-green-500 bg-green-50 text-green-800';
+    if (!showDetails) {
+      return isCorrectOption
+        ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+        : 'border-slate-200 bg-white';
     }
 
-    // For skipped questions, don't highlight user selections
+    if (isCorrectOption) {
+      return 'border-emerald-500 bg-emerald-50 text-emerald-800';
+    }
+
     if (isSkipped) {
-      return 'border-gray-200 bg-white';
+      return 'border-slate-200 bg-white';
     }
 
     if (optionIndex === userSelectedOption && !isCorrect) {
-      return 'border-red-500 bg-red-50 text-red-800';
+      return 'border-rose-500 bg-rose-50 text-rose-800';
     }
 
     if (optionIndex === userSelectedOption && isCorrect) {
-      return 'border-green-500 bg-green-50 text-green-800';
+      return 'border-emerald-500 bg-emerald-50 text-emerald-800';
     }
 
-    return 'border-gray-200 bg-white';
+    return 'border-slate-200 bg-white';
   };
 
   const getOptionIcon = (optionIndex: number) => {
-    if (!showDetails) return null;
-
     if (optionIndex === correctOption) {
       return (
-        <svg className="w-5 h-5 text-green-600 ml-2" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-5 h-5 text-emerald-600 ml-2" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
       );
     }
 
-    if (optionIndex === userSelectedOption && !isCorrect && !isSkipped) {
+    if (showDetails && optionIndex === userSelectedOption && !isCorrect && !isSkipped) {
       return (
-        <svg className="w-5 h-5 text-red-600 ml-2" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-5 h-5 text-rose-600 ml-2" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
       );
@@ -123,7 +149,7 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+    <div className="bg-white/95 border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
       <div className="flex items-start mb-4">
         <div className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold mr-2 sm:mr-3 ${
           isSkipped ? 'bg-gray-100 text-gray-800' : (isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')
@@ -142,7 +168,7 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
             <span className={`self-start px-2 py-1 rounded text-xs sm:text-sm font-medium whitespace-nowrap ${
               isSkipped ? 'bg-gray-100 text-gray-800' : (isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')
             }`}>
-              {isSkipped ? 'Skipped' : (answerDetail.marks_obtained > 0 ? `+${answerDetail.marks_obtained}` : answerDetail.marks_obtained)}
+              {isSkipped ? 'Skipped (Unanswered)' : (answerDetail.marks_obtained > 0 ? `+${answerDetail.marks_obtained}` : answerDetail.marks_obtained)}
             </span>
           </div>
 
@@ -211,7 +237,7 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
 
                 // Always render all 4 options, even if empty
                 return (
-                  <div key={index} className={`flex items-center p-3 sm:p-4 rounded-lg border-2 transition-colors ${getOptionClass(index)}`}>
+                  <div key={index} className={`flex items-center p-3 sm:p-4 rounded-xl border-2 transition-colors ${getOptionClass(index)}`}>
                     <div className="flex items-start flex-1 min-w-0">
                       <span className="font-bold mr-2 sm:mr-3 text-base sm:text-lg text-gray-700 flex-shrink-0">{letter}.</span>
                       <div className="flex-1 min-w-0">
@@ -270,12 +296,27 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
                         <span className="text-xs sm:text-sm font-medium text-blue-600 whitespace-nowrap">(আপনার উত্তর)</span>
                       )}
                       {index === correctOption && userSelectedOption !== correctOption && (
-                        <span className="text-xs sm:text-sm font-medium text-green-600 whitespace-nowrap">(সঠিক উত্তর)</span>
+                        <span className="text-xs sm:text-sm font-medium text-emerald-700 whitespace-nowrap">(সঠিক উত্তর)</span>
                       )}
                     </div>
                   </div>
                 );
               })}
+
+              <div className="mt-4 grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <span className="font-semibold text-slate-900">আপনার উত্তর</span>
+                  <span className="text-slate-700">
+                    {isSkipped || userSelectedOption === null ? 'উত্তর দেওয়া হয়নি' : `${indexToLetter(userSelectedOption) || ''}${optionTextByIndex(userSelectedOption) ? ` — ${optionTextByIndex(userSelectedOption)}` : ''}`}
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                  <span className="font-semibold text-emerald-800">সঠিক উত্তর</span>
+                  <span className="text-emerald-800 font-medium">
+                    {correctOption === null || correctOption === undefined ? 'উপলব্ধ নয়' : `${indexToLetter(correctOption) || ''}${optionTextByIndex(correctOption) ? ` — ${optionTextByIndex(correctOption)}` : ''}`}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 

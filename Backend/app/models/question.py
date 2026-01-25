@@ -11,7 +11,6 @@ class Question(Base):
     content = Column(Text, nullable=False)
     image_url = Column(Text)  # Optional image URL for the question (increased to Text for Google Drive URLs)
     description = Column(Text)  # Optional description/explanation for the answer
-    options = Column(JSONB)
     option_a = Column(Text)
     option_a_img = Column(Text)
     option_b = Column(Text)
@@ -23,10 +22,12 @@ class Question(Base):
     option_b_image_url = Column(Text)  # Optional image URL for option B (increased to Text for Google Drive URLs)
     option_c_image_url = Column(Text)  # Optional image URL for option C (increased to Text for Google Drive URLs)
     option_d_image_url = Column(Text)  # Optional image URL for option D (increased to Text for Google Drive URLs)
-    answer_idx = Column(Integer)
 
     answer = Column(String(1))
 
     exam_id = Column(Integer, ForeignKey("Exam.id"))
     exam = relationship("Exam", back_populates="questions")
     answers = relationship("Answer", back_populates="question")
+
+    def __repr__(self):
+        return f"<Question(id={self.id}, q_type={self.q_type}, content={self.content[:10]}...), answer: {self.answer})>"

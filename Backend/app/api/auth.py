@@ -25,6 +25,14 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
                 detail="Invalid credentials"
             )
 
+        # Disallow login for anonymous users created for guest exam submissions
+        if user.is_anonymous:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Anonymous accounts cannot log in",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+
         if hasattr(user, 'is_admin'):
             role = "admin" if user.is_admin else "user"
         else:

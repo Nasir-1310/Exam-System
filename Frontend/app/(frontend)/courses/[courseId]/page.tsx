@@ -16,9 +16,42 @@ type ApiCourse = Partial<Course> & {
   students?: number;
   isEarlyBird?: boolean;
   isEnrolled?: boolean;
+  discount_start_date?: string;
+  discount_end_date?: string;
+  discount_price?: number;
+  early_bird_price?: number;
 };
 
+
+
+const getPriceValue = (course: Course): number => {
+  const price = Number(course.price ?? 0);
+  
+  const earlyBirdPrice = Number(course.early_bird_price ?? 0);
+  const earlyBirdEndDate = new Date(course.early_bird_end_date ?? '');
+  
+  const discountStartDate = new Date(course.discount_start_date ?? '');
+  const discountEndDate = new Date(course.discount_end_date ?? '');
+  const discount = Number(course.discount_price ?? 0);
+  
+  const now = new Date();
+
+
+  // if early bird is valid, return that price
+  if (earlyBirdPrice > 0 && earlyBirdEndDate > now) {
+    return earlyBirdPrice;
+  }
+
+  // if discount is valid, return that price
+  if (discount > 0 && discountStartDate <= now && discountEndDate >= now) {
+    return discount;
+  }
+  
+  return price;
+}
+
 const normalizeCourse = (payload: ApiCourse): Course => {
+  console.log("Normalizing course payload:", payload);
   const id = payload.id !== undefined ? String(payload.id) : '';
   const title = payload.title ?? payload.titleBangla ?? 'Course';
   return {
@@ -26,7 +59,7 @@ const normalizeCourse = (payload: ApiCourse): Course => {
     title,
     titleBangla: payload.titleBangla ?? title,
     category: 'all',
-    price: typeof payload.price === 'number' ? payload.price : 0,
+    price: getPriceValue(payload as Course),
     thumbnail: payload.thumbnail ?? '',
     duration: payload.duration ?? 'N/A',
     lectures: payload.lectures ?? 0,
@@ -38,6 +71,7 @@ const normalizeCourse = (payload: ApiCourse): Course => {
     isFeatured: payload.isFeatured,
     isEarlyBird: payload.isEarlyBird ?? false,
     isEnrolled: payload.isEnrolled ?? false,
+    is_free: payload.is_free ?? false,
   };
 };
 
