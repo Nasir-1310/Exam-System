@@ -28,7 +28,7 @@ interface Question {
   option_b_image_url?: string;
   option_c_image_url?: string;
   option_d_image_url?: string;
-  answer_idx?: number;
+  answer?: string;
 }
 
 interface Exam {
@@ -102,7 +102,7 @@ export default function ExamDetailModal({
     option_b_image_url: "",
     option_c_image_url: "",
     option_d_image_url: "",
-    answer_idx: 0,
+    answer: "",
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -192,7 +192,7 @@ export default function ExamDetailModal({
       option_b_image_url: question.option_b_image_url || "",
       option_c_image_url: question.option_c_image_url || "",
       option_d_image_url: question.option_d_image_url || "",
-      answer_idx: question.answer_idx || 0,
+      answer: question.answer || "",
     });
     setShowEditModal(true);
   };
@@ -243,7 +243,7 @@ export default function ExamDetailModal({
         option_b_image_url: editForm.option_b_image_url || null,
         option_c_image_url: editForm.option_c_image_url || null,
         option_d_image_url: editForm.option_d_image_url || null,
-        answer_idx: editForm.answer_idx,
+        answer: editForm.answer,
       });
 
       setModalConfig(
@@ -584,14 +584,14 @@ export default function ExamDetailModal({
                   >
                     <div className="flex justify-between items-start gap-3 mb-3">
                       <div className="flex-1">
-  <span className="text-indigo-600 font-semibold text-sm sm:text-base">
-    প্রশ্ন {index + 1}:
-  </span>
-  <MathContentRenderer 
-    content={question.content}
-    className="mt-1 text-gray-900"
-  />
-</div>
+                      <span className="text-indigo-600 font-semibold text-sm sm:text-base">
+                        প্রশ্ন {index + 1}:
+                      </span>
+                      <MathContentRenderer 
+                        content={question.content}
+                        className="mt-1 text-gray-900"
+                      />
+                    </div>
                       <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                         <button
                           onClick={() => handleEditQuestion(question)}
@@ -678,7 +678,7 @@ export default function ExamDetailModal({
                         const optionImage = question[
                           `option_${letter.toLowerCase()}_image_url` as keyof Question
                         ] as string;
-                        const isCorrect = question.answer_idx === optIndex;
+                        const isCorrect = question.answer?.toLowerCase() === letter.toLowerCase();
 
                         return (
                           <div
@@ -923,9 +923,9 @@ export default function ExamDetailModal({
                         <input
                           type="radio"
                           name="edit-correct-answer"
-                          checked={editForm.answer_idx === index}
+                          checked={editForm.answer?.toLowerCase() === letter.toLowerCase()}
                           onChange={() =>
-                            setEditForm({ ...editForm, answer_idx: index })
+                            setEditForm({ ...editForm, answer: letter })
                           }
                           className="w-5 h-5 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                           title="সঠিক উত্তর"

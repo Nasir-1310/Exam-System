@@ -1,7 +1,7 @@
 """add_image_fields_to_question_and_exam_fields
 
 Revision ID: 85abfd4b631f
-Revises: fd24e2a34f18
+Revises: 0c86ce372e5c
 Create Date: 2026-01-17 01:43:43.624854
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '85abfd4b631f'
-down_revision: Union[str, Sequence[str], None] = 'fd24e2a34f18'
+down_revision: Union[str, Sequence[str], None] = '0c86ce372e5c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -11,6 +11,7 @@ interface Stats {
   totalExams: number;
   totalQuestions: number;
   totalModerators: number;
+  totalAnonymous: number;
 }
 
 interface Exam {
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
     totalExams: 0,
     totalQuestions: 0,
     totalModerators: 0,
+    totalAnonymous: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -44,10 +46,11 @@ export default function AdminDashboard() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const [exams, courses, users] = await Promise.all([
+      const [exams, courses, users, anonymousUsers] = await Promise.all([
         apiService.getAllExams(),
         apiService.getAllCourses(),
         apiService.getAllUsers(),
+        apiService.getAnonymousUsers(),
       ]);
 
       const totalQuestions = exams.reduce(
@@ -63,6 +66,7 @@ export default function AdminDashboard() {
         totalExams: exams.length,
         totalQuestions,
         totalModerators: moderators.length,
+        totalAnonymous: anonymousUsers.length,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -82,6 +86,17 @@ export default function AdminDashboard() {
       ),
       bgColor: 'bg-blue-100',
       link: '/users',
+    },
+    {
+      name: 'Anonymous ব্যবহারকারী',
+      value: stats.totalAnonymous,
+      icon: (
+        <svg className="w-8 h-8 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a6 6 0 00-9-5.197M17 20H7m10 0v-2a6 6 0 00-9-5.197M7 20H2v-2a6 6 0 019-5.197M7 20v-2a6 6 0 019-5.197M12 12a4 4 0 100-8 4 4 0 000 8z" />
+        </svg>
+      ),
+      bgColor: 'bg-rose-100',
+      link: '/anonymous-users',
     },
     {
       name: 'মোট কোর্স',

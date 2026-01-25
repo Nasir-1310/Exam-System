@@ -12,7 +12,6 @@ class QuestionBase(BaseModel):
 
 
 class QuestionCreateRequest(QuestionBase):
-    options: Optional[List[str]] = Field(None, description="List of options for MCQ questions")
     option_a: Optional[str] = Field(None, description="Option A text (supports HTML)")
     option_b: Optional[str] = Field(None, description="Option B text (supports HTML)")
     option_c: Optional[str] = Field(None, description="Option C text (supports HTML)")
@@ -21,7 +20,7 @@ class QuestionCreateRequest(QuestionBase):
     option_b_image_url: Optional[str] = Field(None, description="Optional image URL for option B")
     option_c_image_url: Optional[str] = Field(None, description="Optional image URL for option C")
     option_d_image_url: Optional[str] = Field(None, description="Optional image URL for option D")
-    answer_idx: Optional[int] = Field(None, ge=0, le=3, description="Correct answer index (0-3 for A-D)")
+    answer: Optional[str] = Field(None, description="Correct answer letter (A-D)")
 
     @validator('q_type')
     def validate_q_type(cls, v):
@@ -29,10 +28,10 @@ class QuestionCreateRequest(QuestionBase):
             raise ValueError('q_type must be either MCQ or WRITTEN')
         return v
 
-    @validator('answer_idx', always=True)
-    def validate_answer_idx(cls, v, values):
+    @validator('answer', always=True)
+    def validate_answer(cls, v, values):
         if values.get('q_type') == 'MCQ' and v is None:
-            raise ValueError('answer_idx is required for MCQ questions')
+            raise ValueError('answer is required for MCQ questions')
         return v
     
     # ADDED: Validator to sanitize HTML (optional security measure)
@@ -58,7 +57,6 @@ class QuestionCreateRequest(QuestionBase):
                 "content": "<p>What is <strong>2 + 2</strong>?</p><p class='math-inline'>$x^2 + y^2 = r^2$</p>",
                 "image_url": "https://example.com/question-image.jpg",
                 "description": "<p>This is a simple <em>arithmetic</em> problem.</p>",
-                "options": ["3", "4", "5", "6"],
                 "option_a": "<p>Three</p>",
                 "option_b": "<p><strong>Four</strong></p>",
                 "option_c": "5",
@@ -67,7 +65,7 @@ class QuestionCreateRequest(QuestionBase):
                 "option_b_image_url": None,
                 "option_c_image_url": None,
                 "option_d_image_url": None,
-                "answer_idx": 1
+                "answer": 'A'
             }
         }
 
@@ -83,7 +81,7 @@ class QuestionResponse(QuestionBase):
     option_b_image_url: Optional[str] = None
     option_c_image_url: Optional[str] = None
     option_d_image_url: Optional[str] = None
-    answer_idx: Optional[int] = None
+    answer: Optional[str] = None
     exam_id: int
 
     class Config:
@@ -105,7 +103,7 @@ class BulkQuestionPreview(BaseModel):
     option_b_image_url: Optional[str] = None
     option_c_image_url: Optional[str] = None
     option_d_image_url: Optional[str] = None
-    answer_idx: Optional[int] = None
+    answer: Optional[str] = None
     parse_errors: Optional[List[str]] = Field(default_factory=list, description="Any parsing errors for this question")
 
 

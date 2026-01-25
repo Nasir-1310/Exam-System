@@ -41,6 +41,7 @@ class RegisterRequest(BaseModel):
     dob: Optional[date] = Field(None, description="Date of birth (YYYY-MM-DD)")
     whatsapp: Optional[str] = Field(None, max_length=20, description="WhatsApp number")
     role: Optional[str] = Field(None, description="User role (ADMIN, MODERATOR, USER)")  # ← ADD THIS LINE
+    is_anonymous: Optional[bool] = Field(False, description="Whether this user was auto-created for anonymous exam submission")
     
     class Config:
         json_schema_extra = {
@@ -51,7 +52,8 @@ class RegisterRequest(BaseModel):
                 "active_mobile": "01712345678",
                 "whatsapp": "01712345678",
                 "dob": "2000-01-15",
-                "role": "ADMIN"  # ← ADD THIS LINE
+                "role": "ADMIN",  # ← ADD THIS LINE
+                "is_anonymous": False
             }
         }
 

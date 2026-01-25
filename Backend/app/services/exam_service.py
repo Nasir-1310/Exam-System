@@ -7,18 +7,40 @@ from app.schemas.exam import (
     QuestionCreateRequest,
     MCQBulkRequest
 )
-from app.schemas.result import ResultCreate # Corrected import path
+from app.schemas.result import ResultCreate, ResultDetailedResponse # Corrected import path
+from app.schemas.question import QuestionResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from typing import List, Optional
 from datetime import datetime
+from app.services.user_service import create_or_get_anonymous_user, get_user_by_email
+
+
+def _resolve_correct_option_index(question: Question) -> Optional[int]:
+    """Return 0-based correct option index from the Question.answer letter/number field."""
+    if question.answer:
+        letter = str(question.answer).strip().upper()
+        letter_map = {"A": 0, "B": 1, "C": 2, "D": 3}
+        if letter in letter_map:
+            return letter_map[letter]
+        # Allow numeric strings (1-4) just in case
+        if letter.isdigit():
+            try:
+                numeric = int(letter)
+                if 1 <= numeric <= 4:
+                    return numeric - 1
+            except ValueError:
+                pass
+
+    return None
 
 
 async def get_all_exams_service(db: AsyncSession, user_id: Optional[int], course_id: Optional[int] = None) -> List[Exam]:
     """Get all exams with questions filtered by user enrollment and optional course_id (for non-admins)"""
     query = select(Exam).options(selectinload(Exam.questions))
+    priority_order = case((Exam.exam_type == "LIVE", 0), else_=1)
     print(f"[DEBUG] get_all_exams_service - Initial query: {query}")
     
     if user_id is not None:
@@ -30,10 +52,12 @@ async def get_all_exams_service(db: AsyncSession, user_id: Optional[int], course
             query = query.where(Exam.course_id == course_id)
         
         query = query.where(Exam.is_active == True)
+        query = query.order_by(priority_order, Exam.id.desc())
         print(f"[DEBUG] get_all_exams_service - Query for user {user_id}: {query}")
     else:
         # For admins, no user-specific filters, retrieve all exams
         # No joins on Course/UserCourseRelation needed here for admin view
+        query = query.order_by(priority_order, Exam.id.desc())
         print(f"[DEBUG] get_all_exams_service - Query for admin (all exams): {query}")
 
     result = await db.execute(query)
@@ -115,7 +139,6 @@ async def add_question_to_exam_service(
         content=question.content,
         image_url=image_url,
         description=question.description,
-        options=question.options,
         option_a=option_a,
         option_b=option_b,
         option_c=option_c,
@@ -124,7 +147,7 @@ async def add_question_to_exam_service(
         option_b_image_url=option_b_image_url,
         option_c_image_url=option_c_image_url,
         option_d_image_url=option_d_image_url,
-        answer_idx=question.answer_idx
+        answer=question.answer
     )
     
     db.add(question_obj)
@@ -194,8 +217,6 @@ async def update_question_service(
     question.option_b_image_url = option_b_image_url
     question.option_c_image_url = option_c_image_url
     question.option_d_image_url = option_d_image_url
-    question.answer_idx = question_data.answer_idx
-    
     await db.commit()
     await db.refresh(question)
     
@@ -238,24 +259,37 @@ async def delete_exam_service(exam_id: int, db: AsyncSession) -> bool:
 
 async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answers: List[dict]) -> Result:
     """Submit exam answers, calculate score, and store detailed results."""
-    exam = await db.execute(select(Exam).options(selectinload(Exam.questions)).where(Exam.id == exam_id))
+    exam = await db.execute(
+        select(Exam)
+        .options(selectinload(Exam.questions))
+        .options(selectinload(Exam.course))
+        .where(Exam.id == exam_id)
+    )
     exam = exam.scalars().first()
 
     if not exam:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found")
 
-    # Check if user is allowed to take this exam (already handled by get_exam_service, but good to re-check)
-    user_course_check = await db.execute(
-        select(UserCourseRelation).where(
-            UserCourseRelation.c.User_id == user_id,
-            UserCourseRelation.c.Course_id == exam.course_id
-        )
+    # Check if user must be enrolled; allow free/standalone exams without enrollment
+    enrollment_required = not (
+        exam.course_id is None
+        or exam.is_free
+        or exam.price is None
+        or (exam.course and exam.course.is_free)
     )
-    if user_course_check.scalar_one_or_none() is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User not enrolled in the course for this exam"
+
+    if enrollment_required:
+        user_course_check = await db.execute(
+            select(UserCourseRelation).where(
+                UserCourseRelation.c.User_id == user_id,
+                UserCourseRelation.c.Course_id == exam.course_id
+            )
         )
+        if user_course_check.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User not enrolled in the course for this exam"
+            )
 
     # Check for multiple attempts
     if not exam.allow_multiple_attempts:
@@ -279,19 +313,22 @@ async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answ
 
         is_correct = False
         marks_for_question = 0.0
+        correct_option_index = _resolve_correct_option_index(question)
 
         if question.q_type == "MCQ":
-            if selected_option is not None and question.answer_idx is not None and selected_option == question.answer_idx:
+            if (
+                selected_option is not None
+                and correct_option_index is not None
+                and selected_option == correct_option_index
+            ):
                 is_correct = True
                 marks_for_question = float(exam.mark) / len(exam.questions) # Assuming equal marks per question for now
             else:
                 is_correct = False
                 marks_for_question = -float(exam.minus_mark)
-            correct_option_index = question.answer_idx
         else: # For written/other types, correctness and marks determined by admin later
             is_correct = None # Cannot determine automatically
             marks_for_question = 0.0 # Will be graded later
-            correct_option_index = None
 
         if is_correct is True:
             correct_answers_count += 1
@@ -338,6 +375,12 @@ async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answ
     return result_obj
 
 
+async def submit_exam_anonymous_service(db: AsyncSession, exam_id: int, name: str, email: str, active_mobile: Optional[str], answers: List[dict]) -> Result:
+    """Create/fetch an anonymous user and submit exam."""
+    user = await create_or_get_anonymous_user(db, name=name, email=email, active_mobile=active_mobile)
+    return await submit_exam_service(db, exam_id, user.id, answers)
+
+
 async def get_detailed_exam_result_service(db: AsyncSession, exam_id: int, user_id: int) -> ResultDetailedResponse:
     """Get detailed exam results for a user, with answers revealed after a certain time."""
     # Get the latest result for the user for this exam
@@ -350,6 +393,33 @@ async def get_detailed_exam_result_service(db: AsyncSession, exam_id: int, user_
     if not result_obj:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Result not found for this user and exam")
 
+    # Attach placeholders for skipped questions so frontend can label them as skipped
+    question_lookup = {q.id: q for q in result_obj.exam.questions}
+
+    # Ensure every stored answer carries the resolved correct option for display
+    for answer in result_obj.answers_details:
+        if answer.correct_option_index is None and answer.question_id in question_lookup:
+            answer.correct_option_index = _resolve_correct_option_index(question_lookup[answer.question_id])
+
+    answered_question_ids = {a.question_id for a in result_obj.answers_details}
+    missing_questions = [q for q in result_obj.exam.questions if q.id not in answered_question_ids]
+    if missing_questions:
+        placeholders = [
+            Answer(
+                id=0,  # placeholder ID for skipped questions
+                question_id=q.id,
+                exam_id=exam_id,
+                selected_option=None,
+                submitted_answer_text=None,
+                is_correct=False,
+                correct_option_index=_resolve_correct_option_index(q),
+                marks_obtained=0
+            )
+            for q in missing_questions
+        ]
+        # Combine without persisting placeholders
+        result_obj.answers_details = list(result_obj.answers_details) + placeholders
+
     # Check if detailed results can be shown
     now = datetime.utcnow()
     if result_obj.exam.show_detailed_results_after and now < result_obj.exam.show_detailed_results_after:
@@ -359,6 +429,14 @@ async def get_detailed_exam_result_service(db: AsyncSession, exam_id: int, user_
             answer.correct_option_index = None
 
     return result_obj
+
+
+async def get_detailed_exam_result_anonymous_service(db: AsyncSession, exam_id: int, email: str) -> ResultDetailedResponse:
+    """Get detailed results for an anonymous user by email."""
+    user = await get_user_by_email(db, email)
+    if not user or not getattr(user, "is_anonymous", False):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anonymous user not found")
+    return await get_detailed_exam_result_service(db, exam_id, user.id)
 
 
 # ============= NEW FUNCTIONS ADDED BELOW =============
@@ -411,10 +489,23 @@ async def delete_question_service(db: AsyncSession, exam_id: int, question_id: i
 async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam:
     """Create exam with questions and Google Drive URL conversion"""
     try:
-        from datetime import datetime
+        from datetime import datetime, timedelta
 
         # Parse datetime strings (format: 2026-01-20T10:00:00)
         start_time = datetime.fromisoformat(exam.start_time)
+
+        # Use provided end_time if sent; otherwise derive from duration
+        if exam.end_time:
+            # Accept date-only or full datetime strings
+            try:
+                parsed_end = datetime.fromisoformat(exam.end_time)
+                end_time = parsed_end.date()
+            except ValueError:
+                # Fallback: if only date provided (YYYY-MM-DD)
+                from datetime import date
+                end_time = date.fromisoformat(exam.end_time)
+        else:
+            end_time = (start_time + timedelta(minutes=exam.duration_minutes)).date()
         show_detailed_results_after = None
         if exam.show_detailed_results_after:
             show_detailed_results_after = datetime.fromisoformat(exam.show_detailed_results_after)
@@ -425,12 +516,17 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
             'description': exam.description,
             'start_time': start_time,
             'duration_minutes': exam.duration_minutes,
+            'end_time': end_time,
             'mark': exam.mark,
             'minus_mark': exam.minus_mark,
             'course_id': exam.course_id,
+            'exam_type': exam.exam_type,
             'is_active': exam.is_active,
             'allow_multiple_attempts': exam.allow_multiple_attempts,
             'show_detailed_results_after': show_detailed_results_after,
+            'price': exam.price,
+            'is_free': exam.is_free,
+            'is_mcq': exam.is_mcq,
         }
         exam_obj = Exam(**exam_data)
         db.add(exam_obj)
@@ -455,7 +551,6 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
                 content=question.content,
                 image_url=image_url,
                 description=question.description,
-                options=question.options,
                 option_a=option_a,
                 option_b=option_b,
                 option_c=option_c,
@@ -464,7 +559,7 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
                 option_b_image_url=option_b_image_url,
                 option_c_image_url=option_c_image_url,
                 option_d_image_url=option_d_image_url,
-                answer_idx=question.answer_idx
+                answer=question.answer
             )
             db.add(question_obj)
         

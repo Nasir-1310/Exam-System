@@ -35,7 +35,7 @@ export default function AddQuestionModal({
     option_b_image_url: "",
     option_c_image_url: "",
     option_d_image_url: "",
-    answer_idx: 0,
+    answer: "",
   });
   
   const [uploadingFiles, setUploadingFiles] = useState<{
@@ -182,7 +182,7 @@ export default function AddQuestionModal({
           questionType === "MCQ" ? formData.option_c_image_url || null : null,
         option_d_image_url:
           questionType === "MCQ" ? formData.option_d_image_url || null : null,
-        answer_idx: questionType === "MCQ" ? formData.answer_idx : null,
+        answer: questionType === "MCQ" ? formData.answer : null,
       };
 
       await apiService.addQuestionToExam(exam.id, questionData);
@@ -199,7 +199,7 @@ export default function AddQuestionModal({
         option_b_image_url: "",
         option_c_image_url: "",
         option_d_image_url: "",
-        answer_idx: 0,
+        answer: 0,
       });
       
       const successConfig = createSuccessModal(
@@ -416,9 +416,9 @@ export default function AddQuestionModal({
                       <input
                         type="radio"
                         name="correct-answer"
-                        checked={formData.answer_idx === index}
+                        checked={formData.answer?.toLocaleLowerCase() === letter?.toLocaleLowerCase()}
                         onChange={() =>
-                          setFormData({ ...formData, answer_idx: index })
+                          setFormData({ ...formData, answer: letter })
                         }
                         className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                         title="সঠিক উত্তর"

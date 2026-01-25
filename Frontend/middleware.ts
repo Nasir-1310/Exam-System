@@ -8,11 +8,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes - authentication na lagbe
-  const publicPaths = ['/', '/login', '/register'];
+  const publicPaths = ['/', '/login', '/register', '/exam', '/courses',  '/results'];
   const isPublicPath = publicPaths.includes(pathname);
 
   // Protected routes - logged in user access korbe
-  const protectedPaths = ['/exam', '/courses', '/profile', '/results'];
+  const protectedPaths = ['/profile',];
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
 
   // Admin routes - only admin/moderator

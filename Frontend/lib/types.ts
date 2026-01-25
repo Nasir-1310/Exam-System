@@ -17,6 +17,15 @@ export interface Course {
   isFeatured?: boolean;
   isEarlyBird?: boolean;
   isEnrolled?: boolean;
+  is_free?: boolean;
+
+  live_class_url?: string;
+  discount_start_date?: string;
+  discount_end_date?: string;
+  discount_price?: number;
+  early_bird_price?: number;
+  early_bird_end_date?: string;
+  discount?: number;
 }
 
 export type CourseCategory =
@@ -65,7 +74,7 @@ export interface Question {
   option_b_image_url?: string;
   option_c_image_url?: string;
   option_d_image_url?: string;
-  answer_idx?: number;
+  answer?: string;
 }
 
 export interface Exam {

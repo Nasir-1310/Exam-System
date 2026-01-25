@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.schemas.answer import AnswerResponse
@@ -11,28 +11,6 @@ class AnswerCreate(BaseModel):
 
 
 class AnswerResponse(BaseModel):
-<<<<<<< HEAD
-	question: QuestionResponse
-	answer: int
-	is_correct: bool
-	
-	class Config:
-		from_attributes = True
-
-
-class ResultResponse(BaseModel):
-	id: int
-	exam_id: int
-	user_id: int
-	mark: float
-	correct_answers: int
-	incorrect_answers: int
-	created_at: Optional[datetime] = None
-	publish_time: Optional[datetime] = None
-	
-	class Config:
-		from_attributes = True
-=======
     id: int
     question_id: int
     exam_id: int
@@ -68,8 +46,22 @@ class ResultResponse(BaseModel):
     
     class Config:
         from_attributes = True
->>>>>>> origin/nasir
 
 
 class ResultDetailedResponse(ResultResponse):
     answers_details: List[AnswerResponse]
+
+
+class AnonymousExamSubmitRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=255)
+    email: EmailStr
+    active_mobile: Optional[str] = Field(None, max_length=20)
+    answers: List[AnswerCreate]
+
+    @field_validator("active_mobile", mode="before")
+    def empty_mobile_to_none(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str) and v.strip() == "":
+            return None
+        return v

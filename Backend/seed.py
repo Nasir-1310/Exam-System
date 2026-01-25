@@ -1,7 +1,7 @@
 import asyncio
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 # Add current directory to path so we can import app
@@ -38,6 +38,20 @@ async def seed():
                 "password": "password123",
                 "role": "USER",
                 "active_mobile": "01733333333"
+            },
+            {
+                "name": "Student Rina",
+                "email": "rina@exam.com",
+                "password": "password123",
+                "role": "USER",
+                "active_mobile": "01744444444"
+            },
+            {
+                "name": "Student Arif",
+                "email": "arif@exam.com",
+                "password": "password123",
+                "role": "USER",
+                "active_mobile": "01755555555"
             }
         ]
 
@@ -72,7 +86,8 @@ async def seed():
                 "early_bird_end_date": date.today() + timedelta(days=10),
                 "discount": Decimal("500.00"),
                 "discount_start_date": date.today(),
-                "discount_end_date": date.today() + timedelta(days=30)
+                "discount_end_date": date.today() + timedelta(days=30),
+                "is_free": False
             },
             {
                 "title": "Bank Job Special Batch",
@@ -83,7 +98,32 @@ async def seed():
                 "early_bird_end_date": date.today() + timedelta(days=5),
                 "discount": Decimal("200.00"),
                 "discount_start_date": date.today(),
-                "discount_end_date": date.today() + timedelta(days=20)
+                "discount_end_date": date.today() + timedelta(days=20),
+                "is_free": False
+            },
+            {
+                "title": "Primary School Essentials",
+                "description": "Foundation course for primary school recruitment.",
+                "thumbnail": "https://images.unsplash.com/photo-1523580846011-d3a5bc25702b",
+                "price": Decimal("2500.00"),
+                "early_bird_price": Decimal("2000.00"),
+                "early_bird_end_date": date.today() + timedelta(days=7),
+                "discount": Decimal("300.00"),
+                "discount_start_date": date.today(),
+                "discount_end_date": date.today() + timedelta(days=15),
+                "is_free": False
+            },
+            {
+                "title": "Spoken English Starter (Free)",
+                "description": "Kick-off your spoken English with free daily practice.",
+                "thumbnail": "https://images.unsplash.com/photo-1529070538774-1843cb3265df",
+                "price": Decimal("0.00"),
+                "early_bird_price": Decimal("0.00"),
+                "early_bird_end_date": date.today() + timedelta(days=1),
+                "discount": Decimal("0.00"),
+                "discount_start_date": date.today(),
+                "discount_end_date": date.today(),
+                "is_free": True
             }
         ]
 
@@ -106,22 +146,86 @@ async def seed():
             {
                 "title": "BCS Daily Quiz #1",
                 "description": "General Knowledge daily test.",
-                "start_time": date.today(),
+                "start_time": datetime.utcnow() + timedelta(hours=2),
                 "end_time": date.today() + timedelta(days=1),
                 "duration_minutes": 10,
                 "mark": Decimal("10.0"),
                 "minus_mark": Decimal("0.25"),
-                "course_id": created_courses[0].id
+                "course_id": created_courses[0].id,
+                "exam_type": "REGULAR",
+                "is_free": True,
+                "price": Decimal("0.00"),
+                "allow_multiple_attempts": True
+            },
+            {
+                "title": "BCS Live Mega Mock",
+                "description": "Live mock test with instant leaderboard.",
+                "start_time": datetime.utcnow() + timedelta(days=1, hours=3),
+                "end_time": date.today() + timedelta(days=2),
+                "duration_minutes": 120,
+                "mark": Decimal("200.0"),
+                "minus_mark": Decimal("0.5"),
+                "course_id": created_courses[0].id,
+                "exam_type": "LIVE",
+                "is_free": False,
+                "price": Decimal("500.00"),
+                "allow_multiple_attempts": False
             },
             {
                 "title": "Bank Math - Profit & Loss",
                 "description": "Weekly math assessment.",
-                "start_time": date.today(),
+                "start_time": datetime.utcnow() + timedelta(hours=1),
                 "end_time": date.today() + timedelta(days=2),
                 "duration_minutes": 20,
                 "mark": Decimal("20.0"),
                 "minus_mark": Decimal("0.5"),
-                "course_id": created_courses[1].id
+                "course_id": created_courses[1].id,
+                "exam_type": "REGULAR",
+                "is_free": False,
+                "price": Decimal("199.00"),
+                "allow_multiple_attempts": True
+            },
+            {
+                "title": "Primary School Model Test",
+                "description": "Mixed model test for primary recruitment.",
+                "start_time": datetime.utcnow() + timedelta(days=2),
+                "end_time": date.today() + timedelta(days=4),
+                "duration_minutes": 60,
+                "mark": Decimal("50.0"),
+                "minus_mark": Decimal("0.25"),
+                "course_id": created_courses[2].id,
+                "exam_type": "REGULAR",
+                "is_free": True,
+                "price": Decimal("0.00"),
+                "allow_multiple_attempts": False
+            },
+            {
+                "title": "Spoken English Fluency Check",
+                "description": "Short quiz on basic spoken English cues.",
+                "start_time": datetime.utcnow() + timedelta(hours=5),
+                "end_time": date.today() + timedelta(days=1),
+                "duration_minutes": 15,
+                "mark": Decimal("15.0"),
+                "minus_mark": Decimal("0.0"),
+                "course_id": created_courses[3].id,
+                "exam_type": "REGULAR",
+                "is_free": True,
+                "price": Decimal("0.00"),
+                "allow_multiple_attempts": True
+            },
+            {
+                "title": "Standalone Current Affairs (Paid)",
+                "description": "Standalone GK exam not tied to any course.",
+                "start_time": datetime.utcnow() + timedelta(days=3, hours=2),
+                "end_time": date.today() + timedelta(days=5),
+                "duration_minutes": 45,
+                "mark": Decimal("30.0"),
+                "minus_mark": Decimal("0.3"),
+                "course_id": None,
+                "exam_type": "STANDALONE",
+                "is_free": False,
+                "price": Decimal("299.00"),
+                "allow_multiple_attempts": False
             }
         ]
 
@@ -169,7 +273,77 @@ async def seed():
                 "option_c": "650",
                 "option_d": "700",
                 "answer": "B",
+                "exam_id": created_exams[2].id
+            },
+            {
+                "content": "What is the formula for simple interest?",
+                "q_type": "MCQ",
+                "option_a": "P * R * T",
+                "option_b": "(P * R * T) / 100",
+                "option_c": "(P + R + T) / 100",
+                "option_d": "(P * R) / T",
+                "answer": "B",
+                "exam_id": created_exams[2].id
+            },
+            {
+                "content": "How many Bangla MCQ questions are in BCS preliminary?",
+                "q_type": "MCQ",
+                "option_a": "20",
+                "option_b": "25",
+                "option_c": "30",
+                "option_d": "35",
+                "answer": "C",
                 "exam_id": created_exams[1].id
+            },
+            {
+                "content": "What is the total mark of BCS preliminary exam?",
+                "q_type": "MCQ",
+                "option_a": "150",
+                "option_b": "200",
+                "option_c": "250",
+                "option_d": "300",
+                "answer": "B",
+                "exam_id": created_exams[1].id
+            },
+            {
+                "content": "Which tense is used for scheduled future events?",
+                "q_type": "MCQ",
+                "option_a": "Present simple",
+                "option_b": "Present continuous",
+                "option_c": "Future perfect",
+                "option_d": "Past continuous",
+                "answer": "A",
+                "exam_id": created_exams[3].id
+            },
+            {
+                "content": "Which word is stressed in the phrase 'What are you up to?'",
+                "q_type": "MCQ",
+                "option_a": "What",
+                "option_b": "are",
+                "option_c": "up",
+                "option_d": "to",
+                "answer": "C",
+                "exam_id": created_exams[4].id
+            },
+            {
+                "content": "Which country recently launched a Mars mission named 'Hope'?",
+                "q_type": "MCQ",
+                "option_a": "USA",
+                "option_b": "UAE",
+                "option_c": "China",
+                "option_d": "India",
+                "answer": "B",
+                "exam_id": created_exams[5].id
+            },
+            {
+                "content": "Bangladesh Liberation War ended in which year?",
+                "q_type": "MCQ",
+                "option_a": "1971",
+                "option_b": "1975",
+                "option_c": "1969",
+                "option_d": "1980",
+                "answer": "A",
+                "exam_id": created_exams[5].id
             }
         ]
 
@@ -187,6 +361,20 @@ async def seed():
                 "user_id": created_users["joy@exam.com"].id,
                 "course_id": created_courses[0].id,
                 "status": "PENDING",
+                "created_at": date.today(),
+                "updated_at": date.today()
+            },
+            {
+                "user_id": created_users["rina@exam.com"].id,
+                "course_id": created_courses[1].id,
+                "status": "APPROVED",
+                "created_at": date.today(),
+                "updated_at": date.today()
+            },
+            {
+                "user_id": created_users["arif@exam.com"].id,
+                "course_id": created_courses[3].id,
+                "status": "APPROVED",
                 "created_at": date.today(),
                 "updated_at": date.today()
             }

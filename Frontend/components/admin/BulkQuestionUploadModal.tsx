@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import apiService from "@/lib/api";
 import { convertGoogleDriveUrl } from "@/lib/googleDriveUtils";
 import CustomModal from "@/components/common/CustomModal";
@@ -29,7 +28,6 @@ interface ParsedQuestion {
   content: string;
   image_url?: string;
   description?: string;
-  options?: string[];
   option_a?: string;
   option_b?: string;
   option_c?: string;
@@ -38,7 +36,7 @@ interface ParsedQuestion {
   option_b_image_url?: string;
   option_c_image_url?: string;
   option_d_image_url?: string;
-  answer_idx?: number;
+  answer?: string; // stores answer as letter (a-d) or index string
   parse_errors?: string[];
 }
 
@@ -53,7 +51,7 @@ A) Dhaka
 B) Chittagong
 C) Khulna
 D) Rajshahi
-ANSWER: 0
+ANSWER: a
 DESCRIPTION: Dhaka is the capital and largest city of Bangladesh, located on the Buriganga River.
 
 Q: Which of the following is a prime number?
@@ -61,7 +59,7 @@ A) 4
 B) 6
 C) 8
 D) 11
-ANSWER: 3
+ANSWER: c
 DESCRIPTION: A prime number is a natural number greater than 1 that has no positive divisors other than 1 and itself.
 
 `);
@@ -72,6 +70,61 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalConfig, setModalConfig] = useState<ReturnType<typeof createSuccessModal> | null>(null);
+  const [uploading, setUploading] = useState<Record<string, boolean>>({});
+
+  const handleImageUpload = async (
+    file: File,
+    questionIndex: number,
+    field: keyof ParsedQuestion
+  ) => {
+    const key = `${questionIndex}-${field}`;
+
+    try {
+      setUploading((prev) => ({ ...prev, [key]: true }));
+
+      const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+      if (!validTypes.includes(file.type)) {
+        setModalConfig(createErrorModal(
+          "অবৈধ ফাইল টাইপ!",
+          "শুধুমাত্র ছবি আপলোড করুন",
+          "সমর্থিত ফরম্যাট: JPG, PNG, GIF, WebP"
+        ));
+        setShowErrorModal(true);
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setModalConfig(createErrorModal(
+          "ফাইল অতিরিক্ত বড়!",
+          "সর্বোচ্চ ৫ MB আকারের ছবি আপলোড করুন",
+          `আপনার ফাইল: ${(file.size / (1024 * 1024)).toFixed(2)} MB`
+        ));
+        setShowErrorModal(true);
+        return;
+      }
+
+      const uploadedUrl = await apiService.uploadQuestionImage(file);
+
+      setParsedQuestions((prev) => {
+        const updated = [...prev];
+        updated[questionIndex] = {
+          ...updated[questionIndex],
+          [field]: uploadedUrl,
+        } as ParsedQuestion;
+        return updated;
+      });
+    } catch (err) {
+      const error = err as { message?: string };
+      setModalConfig(createErrorModal(
+        "আপলোড ব্যর্থ!",
+        "ছবি আপলোড করতে সমস্যা হয়েছে",
+        error.message || "আবার চেষ্টা করুন"
+      ));
+      setShowErrorModal(true);
+    } finally {
+      setUploading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
   const parseMarkdown = (content: string): ParsedQuestion[] => {
     const questions: ParsedQuestion[] = [];
@@ -80,12 +133,20 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
       .map((line) => line.trim())
       .filter((line) => line);
 
-    let currentQuestion: Partial<ParsedQuestion> = {};
-    let parsingQuestion = false;
+    let currentQuestion: Partial<ParsedQuestion> | null = null;
+    let lastOptionIndex = -1;
+
+    const optionKeys = ["option_a", "option_b", "option_c", "option_d"] as const;
+    const optionImageKeys = [
+      "option_a_image_url",
+      "option_b_image_url",
+      "option_c_image_url",
+      "option_d_image_url",
+    ] as const;
 
     for (const line of lines) {
       if (line.startsWith("Q:")) {
-        if (parsingQuestion && currentQuestion.content) {
+        if (currentQuestion?.content) {
           questions.push(currentQuestion as ParsedQuestion);
         }
 
@@ -94,65 +155,58 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
           content: line.substring(2).trim(),
           parse_errors: [],
         };
-        parsingQuestion = true;
-      } else if (line.startsWith("[image:")) {
+        lastOptionIndex = -1;
+        continue;
+      }
+
+      if (!currentQuestion) continue;
+
+      if (line.startsWith("[image:")) {
         const imageUrl = line.match(/\[image:\s*(.*?)\s*\]/)?.[1];
         if (imageUrl) {
-          if (currentQuestion.options) {
-            const lastOptionIndex = currentQuestion.options.length - 1;
-            const imageKeys = [
-              "option_a_image_url",
-              "option_b_image_url",
-              "option_c_image_url",
-              "option_d_image_url",
-            ] as const;
-            const key = imageKeys[lastOptionIndex];
-            if (key) {
-              (currentQuestion as Record<string, string>)[key] = imageUrl;
-            }
+          if (lastOptionIndex >= 0) {
+            const key = optionImageKeys[lastOptionIndex];
+            if (key) (currentQuestion as Record<string, string>)[key] = imageUrl;
           } else {
             currentQuestion.image_url = imageUrl;
           }
         }
-      } else if (line.startsWith("DESCRIPTION:")) {
-        const description = line.substring(12).trim();
-        if (description) {
-          currentQuestion.description = description;
-        }
-      } else if (line.match(/^[A-D]\)/)) {
-        const optionMatch = line.match(/^([A-D])\)\s*(.*)$/);
-        if (optionMatch) {
-          const [, letter, text] = optionMatch;
-          if (!currentQuestion.options) currentQuestion.options = [];
-          if (!currentQuestion.option_a) currentQuestion.option_a = "";
-          if (!currentQuestion.option_b) currentQuestion.option_b = "";
-          if (!currentQuestion.option_c) currentQuestion.option_c = "";
-          if (!currentQuestion.option_d) currentQuestion.option_d = "";
+        continue;
+      }
 
-          const optionIndex = letter.charCodeAt(0) - "A".charCodeAt(0);
-          currentQuestion.options[optionIndex] = text;
+      if (line.startsWith("DESCRIPTION:")) {
+        const description = line.substring("DESCRIPTION:".length).trim();
+        if (description) currentQuestion.description = description;
+        continue;
+      }
 
-          const optionKeys = ["option_a", "option_b", "option_c", "option_d"] as const;
-          const key = optionKeys[optionIndex];
-          if (key) {
-            (currentQuestion as Record<string, string>)[key] = text;
-          }
-        }
-      } else if (line.startsWith("ANSWER:")) {
-        const answerMatch = line.match(/ANSWER:\s*(\d+)/);
-        if (answerMatch) {
-          currentQuestion.answer_idx = parseInt(answerMatch[1]);
-        }
-      } else if (
+      const optionMatch = line.match(/^([A-D])\)\s*(.*)$/);
+      if (optionMatch) {
+        const [, letter, text] = optionMatch;
+        const optionIndex = letter.charCodeAt(0) - "A".charCodeAt(0);
+        lastOptionIndex = optionIndex;
+        const key = optionKeys[optionIndex];
+        if (key) (currentQuestion as Record<string, string>)[key] = text;
+        continue;
+      }
+
+      if (line.startsWith("ANSWER:")) {
+        const answerRaw = line.substring("ANSWER:".length).trim().toLowerCase();
+        currentQuestion.answer = answerRaw;
+        continue;
+      }
+
+      if (
         line.toLowerCase().includes("write") ||
         line.toLowerCase().includes("explain") ||
         line.toLowerCase().includes("describe")
       ) {
         currentQuestion.q_type = "WRITTEN";
+        continue;
       }
     }
 
-    if (parsingQuestion && currentQuestion.content) {
+    if (currentQuestion?.content) {
       questions.push(currentQuestion as ParsedQuestion);
     }
 
@@ -188,7 +242,7 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
   };
 
   const handleEditQuestion = (index: number, field: string, value: string | number) => {
-    const updated = [...parsedQuestions];
+    const updated = [...parsedQuestions]; 
     (updated[index] as Record<string, string | number>)[field] = value;
     setParsedQuestions(updated);
   };
@@ -197,6 +251,8 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
     setLoading(true);
     setError("");
     setCurrentStep("saving");
+
+    console.log("Saving questions:", parsedQuestions);
 
     try {
       let successCount = 0;
@@ -208,13 +264,40 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
           continue;
         }
 
+        // Validate MCQ requirements before sending
+        if (question.q_type === "MCQ") {
+          const optionTexts = [
+            question.option_a,
+            question.option_b,
+            question.option_c,
+            question.option_d,
+          ].filter((opt) => (opt || "").toString().trim().length > 0);
+
+          if (optionTexts.length < 2) {
+            errors.push(`প্রশ্ন ${i + 1}: কমপক্ষে ২টি অপশন প্রয়োজন।`);
+            continue;
+          }
+          const ans = (question.answer || "").trim().toLowerCase();
+          const answerIdx = ans === "a" ? 0 : ans === "b" ? 1 : ans === "c" ? 2 : ans === "d" ? 3 : Number.isFinite(Number(ans)) ? Number(ans) : NaN;
+          if (!Number.isInteger(answerIdx)) {
+            errors.push(`প্রশ্ন ${i + 1}: সঠিক উত্তর নির্বাচন করা হয়নি (A/B/C/D বা 0-3)।`);
+            continue;
+          }
+          if (answerIdx < 0 || answerIdx > 3) {
+            errors.push(`প্রশ্ন ${i + 1}: ANSWER 0-3 এর মধ্যে বা A-D হতে হবে।`);
+            continue;
+          }
+          // question.answer = (answerIdx).toString();
+          console.log("Validated question answer:", question.answer);
+          // return;
+        }
+
         try {
           const questionData = {
             q_type: question.q_type,
             content: question.content,
             image_url: question.image_url || null,
             description: question.description || null,
-            options: question.q_type === "MCQ" ? question.options : null,
             option_a: question.q_type === "MCQ" ? question.option_a : null,
             option_b: question.q_type === "MCQ" ? question.option_b : null,
             option_c: question.q_type === "MCQ" ? question.option_c : null,
@@ -223,7 +306,7 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
             option_b_image_url: question.option_b_image_url || null,
             option_c_image_url: question.option_c_image_url || null,
             option_d_image_url: question.option_d_image_url || null,
-            answer_idx: question.q_type === "MCQ" ? question.answer_idx : null,
+            answer: question.q_type === "MCQ" ? question.answer : null,
           };
 
           await apiService.addQuestionToExam(exam.id, questionData);
@@ -324,32 +407,60 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
               />
             </div>
 
-            {question.image_url && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  প্রশ্নের ছবি
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                প্রশ্নের ছবি (ঐচ্ছিক)
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <label className="flex flex-col items-center justify-center px-3 py-3 bg-white border border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    {uploading[`${index}-image_url`] ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>PC থেকে আপলোড</span>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, index, "image_url");
+                    }}
+                    disabled={uploading[`${index}-image_url`]}
+                  />
                 </label>
+
                 <input
                   type="url"
-                  value={question.image_url}
-                  onChange={(e) => handleEditQuestion(index, "image_url", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                  value={question.image_url || ""}
+                  onChange={(e) => handleEditQuestion(index, "image_url", convertGoogleDriveUrl(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 text-sm"
+                  placeholder="ছবি URL পেস্ট করুন"
                 />
-                <div className="mt-2 relative w-full h-32 bg-gray-50 rounded-lg overflow-hidden">
-                  <Image
+              </div>
+
+              {question.image_url && (
+                <div className="mt-2 relative w-full h-32 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
+                  <img
                     src={convertGoogleDriveUrl(question.image_url)}
                     alt="Question"
-                    fill
-                    className="object-contain"
-                
+                    className="max-h-full max-w-full object-contain"
+                    loading="lazy"
                     onError={(e) => {
                       const target = e.currentTarget as HTMLImageElement;
                       target.style.display = "none";
                     }}
                   />
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -376,8 +487,8 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
                         <input
                           type="radio"
                           name={`answer-${index}`}
-                          checked={question.answer_idx === optIndex}
-                          onChange={() => handleEditQuestion(index, "answer_idx", optIndex)}
+                          checked={question.answer?.toLowerCase() === letter.toLowerCase()}
+                          onChange={() => handleEditQuestion(index, "answer", letter.toLowerCase())}
                           className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         />
                         <span className="font-bold text-gray-700">{letter}.</span>
@@ -389,20 +500,47 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
                           placeholder={`অপশন ${letter}`}
                         />
                       </div>
-                      <input
-                        type="url"
-                        value={(question[imageKey] as string) || ""}
-                        onChange={(e) => handleEditQuestion(index, imageKey, e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
-                        placeholder="ছবি URL (ঐচ্ছিক)"
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <label className="flex flex-col items-center justify-center px-2 py-3 bg-white border border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors text-xs text-gray-600">
+                          <div className="flex items-center gap-2">
+                            {uploading[`${index}-${imageKey}`] ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>PC থেকে আপলোড</span>
+                              </>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, index, imageKey);
+                            }}
+                            disabled={uploading[`${index}-${imageKey}`]}
+                          />
+                        </label>
+
+                        <input
+                          type="url"
+                          value={(question[imageKey] as string) || ""}
+                          onChange={(e) => handleEditQuestion(index, imageKey, convertGoogleDriveUrl(e.target.value))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900"
+                          placeholder="ছবি URL (ঐচ্ছিক)"
+                        />
+                      </div>
                       {question[imageKey] && (
-                        <div className="mt-2 relative w-32 h-32 bg-gray-50 rounded-lg overflow-hidden">
-                          <Image
+                        <div className="mt-2 relative w-32 h-32 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center">
+                          <img
                             src={convertGoogleDriveUrl(question[imageKey] as string)}
                             alt={`Option ${letter}`}
-                            fill
-                            className="object-contain"
+                            className="max-h-full max-w-full object-contain"
+                            loading="lazy"
                             onError={(e) => {
                               const target = e.currentTarget as HTMLImageElement;
                               target.style.display = "none";

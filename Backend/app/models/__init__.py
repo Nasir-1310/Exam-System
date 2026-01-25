@@ -16,6 +16,7 @@ from app.models.user_exam_access import UserExamAccess
 from app.models.result_announcement import ResultAnnouncement
 from app.models.exam_schedule import ExamSchedule
 from app.models.payment import Payment
+from app.models.admission_request import AdmissionRequest
 
 # Enums - import from enums.py  
 from app.models.enums import (

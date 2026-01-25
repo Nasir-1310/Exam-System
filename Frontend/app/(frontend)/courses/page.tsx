@@ -58,8 +58,13 @@ function AuthPopup({ isOpen, onClose, type }: { isOpen: boolean; onClose: () => 
 
 // Course Card Component
 function CourseCard({ course, onExamClick, onLiveClassClick }: any) {
+  const router = useRouter();
   return (
-    <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100">
+    <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 h-full flex flex-col cursor-pointer"
+      onClick={(e)=>{
+        e.stopPropagation();
+        router.push(`/courses/${course.id}`);
+      }}>
       {/* Course Thumbnail */}
       <div className="relative h-48 bg-gradient-to-br from-blue-500 to-purple-600">
         <img
@@ -79,7 +84,7 @@ function CourseCard({ course, onExamClick, onLiveClassClick }: any) {
         )}
       </div>
       
-      <div className="p-6">
+      <div className="p-6 flex flex-col flex-1">
         <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
           {course.title}
         </h3>
@@ -87,6 +92,9 @@ function CourseCard({ course, onExamClick, onLiveClassClick }: any) {
         <p className="text-gray-600 text-sm mb-4 line-clamp-2">
           {course.description || "No description available"}
         </p>
+
+        {/* gap */}
+        <div className="flex-1"></div>
         
         <div className="mb-4">
           {course.is_free ? (
@@ -107,7 +115,10 @@ function CourseCard({ course, onExamClick, onLiveClassClick }: any) {
         
         <div className="space-y-2">
           <button
-            onClick={() => onExamClick(course)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onExamClick(course)
+            }}
             className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +128,10 @@ function CourseCard({ course, onExamClick, onLiveClassClick }: any) {
           </button>
           
           <button
-            onClick={() => onLiveClassClick(course)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLiveClassClick(course)
+            }}
             className="w-full px-4 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 font-semibold flex items-center justify-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +228,7 @@ export default function CoursesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 pt-20">
+      <div className="min-h-screen bg-gray-50 py-12 px-4 pt-22">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">

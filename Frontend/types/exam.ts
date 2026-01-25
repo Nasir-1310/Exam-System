@@ -14,7 +14,7 @@ export interface Question {
   option_b_image_url?: string;
   option_c_image_url?: string;
   option_d_image_url?: string;
-  answer_idx?: number;
+  answer?: string;
 }
 
 export interface Exam {
@@ -61,5 +61,5 @@ export interface QuestionCreate {
   option_b_image_url?: string;
   option_c_image_url?: string;
   option_d_image_url?: string;
-  answer_idx?: number;
+  answer?: string;
 }

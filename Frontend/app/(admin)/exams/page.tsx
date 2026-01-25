@@ -17,7 +17,7 @@ interface Question {
   q_type: string;
   content: string;
   options: string[];
-  answer_idx: number;
+  answer: string;
 }
 
 interface Exam {

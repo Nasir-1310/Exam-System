@@ -2,66 +2,16 @@
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from datetime import datetime
-<<<<<<< HEAD
-
-
-class QuestionCreateRequest(BaseModel):
-    q_type: str
-
-    content: Optional[str] = None
-    image: Optional[str] = None
-
-    option_a: Optional[str] = None    
-    option_a_img: Optional[str] = None
-
-    option_b: Optional[str] = None
-    option_b_img: Optional[str] = None
-
-    option_c: Optional[str] = None
-    option_c_img: Optional[str] = None
-
-    option_d: Optional[str] = None
-    option_d_img: Optional[str] = None
-
-    answer: Optional[str] = None
-=======
 from decimal import Decimal
 from .question import QuestionCreateRequest
->>>>>>> origin/nasir
 
 
 class QuestionResponse(BaseModel):
     id: int
     q_type: str
-<<<<<<< HEAD
-
-    content: Optional[str] = None
-    image: Optional[str] = None
-
-    option_a: Optional[str] = None    
-    option_a_img: Optional[str] = None
-
-    option_b: Optional[str] = None
-    option_b_img: Optional[str] = None
-
-    option_c: Optional[str] = None
-    option_c_img: Optional[str] = None
-
-    option_d: Optional[str] = None
-    option_d_img: Optional[str] = None
-
-    answer: Optional[str] = None
-
-    # @validator("content", "image", pre=True)
-    # def check_content_and_image(cls, v):
-    #     if v is None:
-    #         raise ValueError("Content or image must be provided")
-    #     return v
-=======
     content: str
     image_url: Optional[str] = None
     description: Optional[str] = None
-    options: Optional[List[str]] = None
     option_a: Optional[str] = None
     option_b: Optional[str] = None
     option_c: Optional[str] = None
@@ -70,8 +20,7 @@ class QuestionResponse(BaseModel):
     option_b_image_url: Optional[str] = None
     option_c_image_url: Optional[str] = None
     option_d_image_url: Optional[str] = None
-    answer_idx: Optional[int] = None
->>>>>>> origin/nasir
+    answer: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -84,9 +33,12 @@ class ExamCreateRequest(BaseModel):
     duration_minutes: int = Field(..., gt=0)
     mark: Decimal = Field(..., gt=0)  # Changed to Decimal
     minus_mark: Decimal = Field(default=0, ge=0)  # Changed to Decimal
+    is_mcq: Optional[bool] = True  # ADD THIS
     course_id: Optional[int] = None
+    exam_type: str = Field(default="REGULAR")
     is_active: bool = Field(default=True)
     allow_multiple_attempts: bool = Field(default=False)
+    end_time: Optional[str] = None  # Optional override; otherwise calculated
     show_detailed_results_after: Optional[str] = None
     price: Optional[Decimal] = None  # ADD THIS - for paid exams
     is_free: bool = Field(default=False)  # ADD THIS
@@ -98,6 +50,7 @@ class ExamCreateRequest(BaseModel):
                 "title": "47th BCS Preliminary Mock Test",
                 "description": "Complete mock test",
                 "start_time": "2026-01-20T10:00:00Z",
+                "end_time": "2026-01-20",
                 "duration_minutes": 120,
                 "mark": 200,
                 "minus_mark": 0.5,
@@ -133,6 +86,8 @@ class ExamResponse(BaseModel):
     mark: Decimal  # Changed to Decimal
     minus_mark: Decimal  # Changed to Decimal
     course_id: Optional[int] = None
+    is_mcq: Optional[bool] = True  # ADD THIS
+    exam_type: str
     is_active: bool
     allow_multiple_attempts: bool
     show_detailed_results_after: Optional[datetime] = None
@@ -152,6 +107,7 @@ class ExamUpdateRequest(BaseModel):
     mark: Optional[Decimal] = Field(None, gt=0)  # Changed to Decimal
     minus_mark: Optional[Decimal] = Field(None, ge=0)  # Changed to Decimal
     course_id: Optional[int] = None
+    exam_type: Optional[str] = None
     is_active: Optional[bool] = None
     allow_multiple_attempts: Optional[bool] = None
     show_detailed_results_after: Optional[datetime] = None

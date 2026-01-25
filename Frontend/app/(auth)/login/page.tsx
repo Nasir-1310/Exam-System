@@ -2,12 +2,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import apiService from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,7 +31,14 @@ export default function LoginPage() {
 
     try {
       const response = await apiService.login(formData);
-      
+
+      // Prefer redirect target if provided by middleware
+      const redirectTarget = searchParams.get('redirect') || searchParams.get('next');
+      if (redirectTarget) {
+        router.push(redirectTarget);
+        return;
+      }
+
       // ✅ FIXED: Changed /admin/dashboard to /dashboard
       if (response.user.role === 'ADMIN' || response.user.role === 'MODERATOR') {
         router.push('/dashboard');

@@ -9,8 +9,10 @@ import QuestionCard from "@/components/exam/QuestionCard";
 import Timer from "@/components/exam/Timer";
 import { convertGoogleDriveUrl } from "@/lib/googleDriveUtils";
 import MathContentRenderer from "@/components/editor/MathContentRenderer"; // ADD THIS IMPORT
+import { getBrowserToken } from "@/lib/authToken";
 import Swal from "sweetalert2";
-import Image from "next/image";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
 export default function MCQExamPage() {
   const params = useParams();
@@ -23,9 +25,20 @@ export default function MCQExamPage() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAnonModal, setShowAnonModal] = useState(false);
+  const [anonForm, setAnonForm] = useState({ name: "", email: "", active_mobile: "" });
+  const [anonSubmitting, setAnonSubmitting] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
+  const [examStarted, setExamStarted] = useState(false);
   const timerRef = useRef<any>(null);
 
+  const answeredQuestions = exam?.questions
+    ? exam.questions.filter((q) => userAnswers.has(q.id)).length
+    : 0;
+
   useEffect(() => {
+    setHasToken(!!getBrowserToken());
+
     const fetchExam = async () => {
       try {
         setLoading(true);
@@ -55,7 +68,12 @@ export default function MCQExamPage() {
           });
           return;
         }
-        timerRef.current?.start();
+        // If already authenticated, start immediately; otherwise show modal first
+        if (getBrowserToken()) {
+          setExamStarted(true);
+        } else {
+          setShowAnonModal(true);
+        }
       } catch (err: any) {
         setError(err.message);
         Swal.fire({
@@ -76,6 +94,13 @@ export default function MCQExamPage() {
     }
   }, [examId, router]);
 
+  // Start timer when exam is allowed to start (logged-in or anon form submitted)
+  useEffect(() => {
+    if (exam && examStarted && exam.duration_minutes > 0) {
+      timerRef.current?.start();
+    }
+  }, [exam, examStarted]);
+
   const handleAnswerChange = (
     questionId: number,
     selectedOption: number | null,
@@ -93,6 +118,18 @@ export default function MCQExamPage() {
   };
 
   const handleSubmitExam = async () => {
+    if (!exam) return;
+    const token = getBrowserToken();
+    if (!token) {
+      // Require anon info before submitting
+      if (!anonForm.name.trim() || !anonForm.email.trim()) {
+        setShowAnonModal(true);
+        return;
+      }
+      await submitAnonymousExam();
+      return;
+    }
+
     const unansweredCount = exam.questions.length - answeredQuestions;
 
     const confirmText =
@@ -114,12 +151,40 @@ export default function MCQExamPage() {
         try {
           setLoading(true);
           const answersArray = Array.from(userAnswers.values());
-          const resultData = await apiService.submitExam(examId, answersArray);
+          const res = await fetch(`${API_BASE}/api/exams/${examId}/submit`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+            body: JSON.stringify(answersArray),
+          });
+
+          if (res.status === 401) {
+            Swal.fire({
+              icon: "warning",
+              title: "লগইন প্রয়োজন",
+              text: "পরীক্ষা জমা দিতে লগইন করুন।",
+              confirmButtonText: "লগইন",
+            }).then(() => {
+              router.push(`/auth/login?next=${encodeURIComponent(window.location.href)}`);
+            });
+            return;
+          }
+
+          if (!res.ok) {
+            const msg = await res.text();
+            throw new Error(msg || "পরীক্ষা জমা করতে ব্যর্থ।");
+          }
+
+          await res.json();
           Swal.fire(
             "জমা হয়েছে!",
             "আপনার পরীক্ষা সফলভাবে জমা হয়েছে।",
             "success",
           );
+          // Always navigate with the examId since the result page expects examId (it fetches the latest result for the exam)
           router.push(`/exam/mcq/result/${examId}`);
         } catch (err: any) {
           setError(err.message);
@@ -133,6 +198,98 @@ export default function MCQExamPage() {
         }
       }
     });
+  };
+
+  const submitAnonymousExam = async () => {
+    if (!exam) return;
+    if (!anonForm.name.trim() || !anonForm.email.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "তথ্য প্রয়োজন",
+        text: "নাম এবং ইমেইল দিন।",
+      });
+      return;
+    }
+
+    const unansweredCount = exam.questions.length - answeredQuestions;
+    const confirmText =
+      unansweredCount > 0
+        ? `আপনি ${unansweredCount}টি প্রশ্নের উত্তর দেননি। এগিয়ে যেতে চান?`
+        : "আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?";
+
+    const confirmation = await Swal.fire({
+      title: "নিশ্চিত করুন",
+      text: confirmText,
+      icon: unansweredCount > 0 ? "warning" : "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "হ্যাঁ, জমা দিন",
+      cancelButtonText: "বাতিল",
+    });
+
+    if (!confirmation.isConfirmed) return;
+
+    try {
+      setAnonSubmitting(true);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("anonymous_user", JSON.stringify(anonForm));
+      }
+      const answersArray = Array.from(userAnswers.values());
+      const res = await fetch(`${API_BASE}/api/exams/${examId}/submit/anonymous`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: anonForm.name,
+          email: anonForm.email,
+          active_mobile: anonForm.active_mobile,
+          answers: answersArray,
+        }),
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "পরীক্ষা জমা করতে ব্যর্থ।");
+      }
+
+      await res.json();
+      setShowAnonModal(false);
+      setExamStarted(true);
+      Swal.fire(
+        "জমা হয়েছে!",
+        "আপনার পরীক্ষা সফলভাবে জমা হয়েছে।",
+        "success",
+      );
+      router.push(`/exam/mcq/result/${examId}`);
+    } catch (err: any) {
+      setError(err.message);
+      Swal.fire({
+        icon: "error",
+        title: "জমা করা ব্যর্থ",
+        text: err.message || "পরীক্ষা জমা করতে ব্যর্থ।",
+      });
+    } finally {
+      setAnonSubmitting(false);
+    }
+  };
+
+  const handleAnonStart = async () => {
+    if (!exam) return;
+    if (!anonForm.name.trim() || !anonForm.email.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "তথ্য প্রয়োজন",
+        text: "নাম এবং ইমেইল দিন।",
+      });
+      return;
+    }
+    setShowAnonModal(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("anonymous_user", JSON.stringify(anonForm));
+    }
+    setExamStarted(true);
   };
 
   // ============================================================================
@@ -243,25 +400,92 @@ export default function MCQExamPage() {
     );
   }
 
-  const answeredQuestions = exam.questions.filter((q) =>
-    userAnswers.has(q.id),
-  ).length;
-
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">
+    <>
+      {showAnonModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white w-full max-w-lg rounded-xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">অতিথি হিসেবে পরীক্ষা শুরু করুন</h3>
+                <p className="text-sm text-gray-600">পরীক্ষা শুরু করার আগে নাম ও ইমেইল দিন।</p>
+              </div>
+              <button
+                onClick={() => setShowAnonModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">নাম *</label>
+                <input
+                  type="text"
+                  value={anonForm.name}
+                  onChange={(e) => setAnonForm({ ...anonForm, name: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="আপনার নাম"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ইমেইল *</label>
+                <input
+                  type="email"
+                  value={anonForm.email}
+                  onChange={(e) => setAnonForm({ ...anonForm, email: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="example@mail.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">মোবাইল</label>
+                <input
+                  type="tel"
+                  value={anonForm.active_mobile}
+                  onChange={(e) => setAnonForm({ ...anonForm, active_mobile: e.target.value })}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="১১ ডিজিট মোবাইল"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowAnonModal(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+                disabled={anonSubmitting}
+              >
+                বাতিল
+              </button>
+              <button
+                onClick={handleAnonStart}
+                className="px-5 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60"
+                disabled={anonSubmitting}
+              >
+                {anonSubmitting ? "প্রস্তুত হচ্ছে..." : "পরীক্ষা শুরু"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen bg-gray-100 py-8">
+        <div className="container mx-auto px-4 max-w-4xl mt-14">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4 text-center">
           {exam.title}
         </h1>
         {/* UPDATED: Use MathContentRenderer for exam description */}
         <MathContentRenderer 
           content={exam.description}
-          className="text-gray-600 text-center mb-8"
+          className="text-gray-600 text-center mb-4"
         />
 
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-4">
+        <div className="bg-white p-3 rounded-lg shadow-md mb-3 sticky top-0 z-50">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center space-x-3">
               <h2 className="text-xl text-black font-semibold">পরীক্ষা প্রশ্নসমূহ</h2>
               <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                 উত্তর দেওয়া: {answeredQuestions}/{exam.questions.length}
@@ -285,41 +509,46 @@ export default function MCQExamPage() {
               }}
             ></div>
           </div>
-          <p className="text-sm text-gray-600 text-center">
-            {Math.round((answeredQuestions / exam.questions.length) * 100)}%
-            সম্পন্ন
-          </p>
 
-          {/* Question Navigation */}
-          <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">
-              প্রশ্ন নেভিগেশন:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {exam.questions.map((question, index) => {
-                const isAnswered = userAnswers.has(question.id);
-                return (
-                  <button
-                    key={question.id}
-                    onClick={() => {
-                      const element = document.getElementById(
-                        `question-${question.id}`,
-                      );
-                      element?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                    }}
-                    className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
-                      isAnswered
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
+          <div>
+            {/* Question Navigation */}
+            <div className="mt-4 flex items-center gap-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                প্রশ্ন নেভিগেশন:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {exam.questions.map((question, index) => {
+                  const isAnswered = userAnswers.has(question.id);
+                  return (
+                    <button
+                      key={question.id}
+                      onClick={() => {
+                        const element = document.getElementById(
+                          `question-${question.id}`,
+                        );
+                        element?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }}
+                      className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                        isAnswered
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex-1"></div>
+           
+              <p className="text-sm text-gray-600 text-center">
+                {Math.round((answeredQuestions / exam.questions.length) * 100)}%
+                সম্পন্ন
+              </p>
             </div>
           </div>
         </div>
@@ -384,7 +613,8 @@ export default function MCQExamPage() {
             পরীক্ষা জমা দিন
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

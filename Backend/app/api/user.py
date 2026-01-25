@@ -8,6 +8,7 @@ from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.auth import CourseEnrollmentRequest
 from app.services.user_service import (
     get_all_users,
+    get_anonymous_users,
     get_user_by_id,
     get_user_by_email,
     update_user,
@@ -49,6 +50,20 @@ async def list_users(
     Requires authentication
     """
     users = await get_all_users(db, skip=skip, limit=limit)
+    return users
+
+
+@router.get("/anonymous", response_model=List[UserResponse])
+async def list_anonymous_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(["ADMIN", "MODERATOR"]))
+):
+    """
+    Get anonymous users with pagination (admin/moderator only)
+    """
+    users = await get_anonymous_users(db, skip=skip, limit=limit)
     return users
 
 

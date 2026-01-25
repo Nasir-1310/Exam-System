@@ -13,6 +13,7 @@ interface Exam {
   mark: number;
   minus_mark: number;
   is_free: boolean;
+  is_mcq: boolean;
   price: number | null;
   questions: any[];
 }
@@ -120,11 +121,13 @@ function ExamCard({ exam, course, onStartExam }: any) {
     });
   };
 
+  console.log("ExamCard Render:", exam);
+
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100">
-      <div className="p-6">
+      <div className="p-6 h-full flex flex-col">
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-xl font-bold text-gray-900 line-clamp-2 flex-1">
+          <h3 className="text-xl font-bold text-gray-900 line-clamp-2">
             {exam.title}
           </h3>
           {exam.is_free ? (
@@ -154,6 +157,10 @@ function ExamCard({ exam, course, onStartExam }: any) {
             </span>
             <span className="font-semibold text-gray-900">
               {exam.duration_minutes} min
+            </span>
+            {/* is_mcq */}
+            <span className="ml-4 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+              {exam.is_mcq ? "MCQ" : "Written"}
             </span>
           </div>
 
@@ -193,6 +200,7 @@ function ExamCard({ exam, course, onStartExam }: any) {
             </span>
           </div>
 
+
           {!exam.is_free && exam.price && (
             <div className="flex items-center justify-between text-sm pt-2 border-t">
               <span className="text-gray-600">Price</span>
@@ -200,6 +208,8 @@ function ExamCard({ exam, course, onStartExam }: any) {
             </div>
           )}
         </div>
+
+        <div className="flex-1"> </div>
 
         <button
           onClick={() => onStartExam(exam)}
@@ -283,7 +293,7 @@ export default function CourseExamsPage() {
 
     // Case 1: Free course + Free exam = Direct access
     if (isCourseFrere && isExamFree) {
-      router.push(`/exam/${exam.id}`);
+      router.push(`/exam/${exam?.is_mcq ? "mcq" : "written"}/${exam.id}`);
       return;
     }
 
@@ -298,7 +308,7 @@ export default function CourseExamsPage() {
       if (!isLoggedIn) {
         setPopup({ isOpen: true, type: "login", exam });
       } else {
-        router.push(`/exam/${exam.id}`);
+        router.push(`/exam/${exam.is_mcq ? "mcq" : "written"}/${exam.id}`);
       }
       return;
     }
@@ -322,7 +332,7 @@ export default function CourseExamsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 pt-20">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
+        <div className="mb-8 mt-3">
           <button
             onClick={() => router.push("/courses")}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"

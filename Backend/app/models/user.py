@@ -23,6 +23,7 @@ class User(Base):
     last_login = Column(Date, nullable=True)
 
     is_active = Column(Boolean, default=True)
+    is_anonymous = Column(Boolean, default=False, server_default="false")
     is_banned = Column(Boolean, default=False)
     banned_at = Column(DateTime, nullable=True)
     banned_reason = Column(Text, nullable=True)
@@ -34,3 +35,4 @@ class User(Base):
     results = relationship("Result", back_populates="user")
     courses = relationship("Course", secondary=UserCourseRelation, back_populates="users")
     payments = relationship("Payment", back_populates="user")
+    admission_requests = relationship("AdmissionRequest", back_populates="user")

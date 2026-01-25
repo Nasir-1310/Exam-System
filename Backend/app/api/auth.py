@@ -16,12 +16,21 @@ router = APIRouter(prefix="/api", tags=["Auth"])
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     try:
+        print("Login attempt for:", payload.email, "Password: ", payload.password)
         user = await get_user_by_email(db, payload.email)
 
         if not user or not verify_password(payload.password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, 
                 detail="Invalid credentials"
+            )
+
+        # Disallow login for anonymous users created for guest exam submissions
+        if user.is_anonymous:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Anonymous accounts cannot log in",
+                headers={"WWW-Authenticate": "Bearer"}
             )
 
         if hasattr(user, 'is_admin'):
