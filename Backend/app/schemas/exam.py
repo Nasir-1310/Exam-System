@@ -34,7 +34,9 @@ class ExamCreateRequest(BaseModel):
     duration_minutes: int = Field(..., gt=0)
     mark: Decimal = Field(..., gt=0)  # Changed to Decimal
     minus_mark: Decimal = Field(default=0, ge=0)  # Changed to Decimal
+    is_mcq: Optional[bool] = True  # ADD THIS
     course_id: Optional[int] = None
+    exam_type: str = Field(default="REGULAR")
     is_active: bool = Field(default=True)
     allow_multiple_attempts: bool = Field(default=False)
     show_detailed_results_after: Optional[str] = None
@@ -83,6 +85,8 @@ class ExamResponse(BaseModel):
     mark: Decimal  # Changed to Decimal
     minus_mark: Decimal  # Changed to Decimal
     course_id: Optional[int] = None
+    is_mcq: Optional[bool] = True  # ADD THIS
+    exam_type: str
     is_active: bool
     allow_multiple_attempts: bool
     show_detailed_results_after: Optional[datetime] = None
@@ -102,6 +106,7 @@ class ExamUpdateRequest(BaseModel):
     mark: Optional[Decimal] = Field(None, gt=0)  # Changed to Decimal
     minus_mark: Optional[Decimal] = Field(None, ge=0)  # Changed to Decimal
     course_id: Optional[int] = None
+    exam_type: Optional[str] = None
     is_active: Optional[bool] = None
     allow_multiple_attempts: Optional[bool] = None
     show_detailed_results_after: Optional[datetime] = None

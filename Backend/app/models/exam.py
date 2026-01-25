@@ -18,20 +18,22 @@ class Exam(Base):
     minus_mark = Column(DECIMAL, nullable=False)
     
     course_id = Column(Integer, ForeignKey("Course.id"), nullable=True)
+    exam_type = Column(String(20), nullable=False, default="REGULAR")
     is_active = Column(Boolean, default=True)
     allow_multiple_attempts = Column(Boolean, default=False)
     show_detailed_results_after = Column(DateTime, nullable=True)
     price = Column(DECIMAL, nullable=True)  # null = free
     is_free = Column(Boolean, default=False)
+    is_mcq = Column(Boolean, default=True, server_default="true")  # MCQ or Written
+
     result_announcement_time = Column(DateTime, nullable=True)
     auto_remove_after_days = Column(Integer, nullable=True, default=30)  # auto remove
+
     deleted_at = Column(DateTime, nullable=True)  # soft delete
     is_deleted = Column(Boolean, default=False)
 
 
-
     course = relationship("Course", back_populates="exams")
-    
     questions = relationship("Question", back_populates="exam")
     results = relationship("Result", back_populates="exam")
     answers = relationship("Answer", back_populates="exam")

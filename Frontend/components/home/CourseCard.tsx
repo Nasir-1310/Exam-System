@@ -2,6 +2,7 @@
 'use client';
 
 import { Course } from '@/lib/types';
+import Link from 'next/link';
 
 interface CourseCardProps {
   course: Course;
@@ -66,12 +67,12 @@ export default function CourseCard({ course }: CourseCardProps) {
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-indigo-600 group-hover:text-indigo-700 transition-colors">
+          <Link href={`/courses/${course.id}`} className="flex items-center gap-2 text-indigo-600 group-hover:text-indigo-700 transition-colors">
             <span className="text-sm font-medium">বিস্তারিত</span>
             <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
-          </div>
+          </Link>
         </div>
       </div>
     </div>

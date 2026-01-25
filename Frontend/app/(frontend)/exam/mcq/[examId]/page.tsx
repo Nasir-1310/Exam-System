@@ -10,7 +10,6 @@ import Timer from "@/components/exam/Timer";
 import { convertGoogleDriveUrl } from "@/lib/googleDriveUtils";
 import MathContentRenderer from "@/components/editor/MathContentRenderer"; // ADD THIS IMPORT
 import Swal from "sweetalert2";
-import Image from "next/image";
 
 export default function MCQExamPage() {
   const params = useParams();
@@ -249,19 +248,19 @@ export default function MCQExamPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4 text-center">
+      <div className="container mx-auto px-4 max-w-4xl mt-14">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4 text-center">
           {exam.title}
         </h1>
         {/* UPDATED: Use MathContentRenderer for exam description */}
         <MathContentRenderer 
           content={exam.description}
-          className="text-gray-600 text-center mb-8"
+          className="text-gray-600 text-center mb-4"
         />
 
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center space-x-4">
+        <div className="bg-white p-3 rounded-lg shadow-md mb-3 sticky top-0 z-50">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center space-x-3">
               <h2 className="text-xl text-black font-semibold">পরীক্ষা প্রশ্নসমূহ</h2>
               <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                 উত্তর দেওয়া: {answeredQuestions}/{exam.questions.length}
@@ -285,41 +284,46 @@ export default function MCQExamPage() {
               }}
             ></div>
           </div>
-          <p className="text-sm text-gray-600 text-center">
-            {Math.round((answeredQuestions / exam.questions.length) * 100)}%
-            সম্পন্ন
-          </p>
 
-          {/* Question Navigation */}
-          <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">
-              প্রশ্ন নেভিগেশন:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {exam.questions.map((question, index) => {
-                const isAnswered = userAnswers.has(question.id);
-                return (
-                  <button
-                    key={question.id}
-                    onClick={() => {
-                      const element = document.getElementById(
-                        `question-${question.id}`,
-                      );
-                      element?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                    }}
-                    className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
-                      isAnswered
-                        ? "bg-green-500 text-white hover:bg-green-600"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                );
-              })}
+          <div>
+            {/* Question Navigation */}
+            <div className="mt-4 flex items-center gap-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                প্রশ্ন নেভিগেশন:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {exam.questions.map((question, index) => {
+                  const isAnswered = userAnswers.has(question.id);
+                  return (
+                    <button
+                      key={question.id}
+                      onClick={() => {
+                        const element = document.getElementById(
+                          `question-${question.id}`,
+                        );
+                        element?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        });
+                      }}
+                      className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                        isAnswered
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex-1"></div>
+           
+              <p className="text-sm text-gray-600 text-center">
+                {Math.round((answeredQuestions / exam.questions.length) * 100)}%
+                সম্পন্ন
+              </p>
             </div>
           </div>
         </div>

@@ -11,7 +11,7 @@ export default function WrittenExamListPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 pt-20">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 mt-3">
           <div>
             <Link
               href="/exam"

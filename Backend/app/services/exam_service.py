@@ -10,7 +10,7 @@ from app.schemas.exam import (
 from app.schemas.result import ResultCreate, ResultDetailedResponse # Corrected import path
 from app.schemas.question import QuestionResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from typing import List, Optional
@@ -20,6 +20,7 @@ from datetime import datetime
 async def get_all_exams_service(db: AsyncSession, user_id: Optional[int], course_id: Optional[int] = None) -> List[Exam]:
     """Get all exams with questions filtered by user enrollment and optional course_id (for non-admins)"""
     query = select(Exam).options(selectinload(Exam.questions))
+    priority_order = case((Exam.exam_type == "LIVE", 0), else_=1)
     print(f"[DEBUG] get_all_exams_service - Initial query: {query}")
     
     if user_id is not None:
@@ -31,10 +32,12 @@ async def get_all_exams_service(db: AsyncSession, user_id: Optional[int], course
             query = query.where(Exam.course_id == course_id)
         
         query = query.where(Exam.is_active == True)
+        query = query.order_by(priority_order, Exam.id.desc())
         print(f"[DEBUG] get_all_exams_service - Query for user {user_id}: {query}")
     else:
         # For admins, no user-specific filters, retrieve all exams
         # No joins on Course/UserCourseRelation needed here for admin view
+        query = query.order_by(priority_order, Exam.id.desc())
         print(f"[DEBUG] get_all_exams_service - Query for admin (all exams): {query}")
 
     result = await db.execute(query)

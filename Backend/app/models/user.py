@@ -34,3 +34,4 @@ class User(Base):
     results = relationship("Result", back_populates="user")
     courses = relationship("Course", secondary=UserCourseRelation, back_populates="users")
     payments = relationship("Payment", back_populates="user")
+    admission_requests = relationship("AdmissionRequest", back_populates="user")

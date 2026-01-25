@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api", tags=["Auth"])
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     try:
+        print("Login attempt for:", payload.email, "Password: ", payload.password)
         user = await get_user_by_email(db, payload.email)
 
         if not user or not verify_password(payload.password, user.password_hash):
