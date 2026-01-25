@@ -1,3 +1,4 @@
+# app/models/user_course.py
 from sqlalchemy import Column, Integer, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from app.lib.db import Base

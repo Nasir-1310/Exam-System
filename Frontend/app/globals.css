@@ -28,3 +28,321 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* =========================
+   TipTap Global Styles
+   ========================= */
+
+.tiptap-editor {
+  background-color: #ffffff;
+}
+
+/* Toolbar buttons */
+.tiptap-editor button {
+  color: #374151; /* gray-700 - darker for better visibility */
+}
+
+/* SVG icons - FIXED for clear visibility */
+.tiptap-editor svg {
+  fill: none !important; /* Remove fill to show stroke-based icons */
+  stroke: #374151 !important; /* gray-700 - darker stroke */
+  stroke-width: 2 !important; /* Thicker stroke for clarity */
+}
+
+/* Hover state */
+.tiptap-editor button:hover {
+  background-color: #f3f4f6; /* gray-100 */
+}
+
+.tiptap-editor button:hover svg {
+  stroke: #111827 !important; /* Even darker on hover */
+}
+
+/* Active button - more visible */
+.tiptap-editor button.bg-blue-100 {
+  background-color: #dbeafe !important; /* blue-100 */
+}
+
+.tiptap-editor button.bg-blue-100 svg {
+  stroke: #1e40af !important; /* blue-700 */
+}
+
+/* Editor content text */
+.tiptap-editor .ProseMirror {
+  color: #000;
+  padding: 12px;
+  min-height: 150px;
+}
+
+/* Focus outline fix */
+.tiptap-editor .ProseMirror:focus {
+  outline: none;
+}
+
+/* Math formula input field text color fix */
+.tiptap-editor input[type="text"] {
+  color: #111827 !important; /* black text */
+  background-color: #ffffff !important; /* white background */
+}
+
+.tiptap-editor input[type="text"]::placeholder {
+  color: #9CA3AF !important; /* gray placeholder */
+}
+
+/* Math inline */
+.tiptap-editor .math-inline {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  color: #0c4a6e;
+  font-size: 1.1em;
+}
+
+/* ProseMirror base */
+.tiptap-editor .ProseMirror {
+  outline: none;
+  color: #000;
+}
+
+.tiptap-editor .ProseMirror h1 {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.tiptap-editor .ProseMirror h2 {
+  font-size: 1.25em;
+  font-weight: bold;
+}
+
+.tiptap-editor .ProseMirror h3 {
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.tiptap-editor .ProseMirror ul,
+.tiptap-editor .ProseMirror ol {
+  padding-left: 1.5em;
+}
+
+
+/* =========================
+   MathContentRenderer Styles - For displaying rich text content
+   ========================= */
+
+/* Math inline rendering (same as editor for consistency) */
+.math-inline {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'KaTeX_Main', 'Times New Roman', serif;
+  color: #0c4a6e;
+  font-size: 1.1em;
+  display: inline-block;
+}
+
+/* Bold text */
+.prose strong,
+.prose b {
+  font-weight: 700 !important;
+  color: inherit;
+}
+
+/* Italic text */
+.prose em,
+.prose i {
+  font-style: italic !important;
+  color: inherit;
+}
+
+/* Underline text */
+.prose u {
+  text-decoration: underline !important;
+  color: inherit;
+}
+
+/* Strikethrough text */
+.prose s,
+.prose strike,
+.prose del {
+  text-decoration: line-through !important;
+  color: inherit;
+}
+
+/* Paragraphs */
+.prose p {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+
+/* Lists */
+.prose ul,
+.prose ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+  list-style-position: outside;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin: 0.25em 0;
+  line-height: 1.6;
+}
+
+.prose ul ul,
+.prose ol ul {
+  list-style-type: circle;
+  margin-top: 0.25em;
+}
+
+.prose ul ul ul,
+.prose ol ol ul {
+  list-style-type: square;
+}
+
+/* Headings */
+.prose h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 0.75em 0 0.5em 0;
+  color: inherit;
+  line-height: 1.2;
+}
+
+.prose h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 0.75em 0 0.5em 0;
+  color: inherit;
+  line-height: 1.3;
+}
+
+.prose h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 0.75em 0 0.5em 0;
+  color: inherit;
+  line-height: 1.4;
+}
+
+.prose h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0.75em 0 0.5em 0;
+  color: inherit;
+  line-height: 1.5;
+}
+
+.prose h5,
+.prose h6 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0.75em 0 0.5em 0;
+  color: inherit;
+  line-height: 1.5;
+}
+
+/* Links */
+.prose a {
+  color: #2563eb;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.prose a:hover {
+  color: #1d4ed8;
+}
+
+/* Code */
+.prose code {
+  background-color: #f3f4f6;
+  padding: 0.125em 0.25em;
+  border-radius: 0.25em;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875em;
+  color: #374151;
+}
+
+.prose pre {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin: 0.5em 0;
+  line-height: 1.5;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: 1em;
+}
+
+/* Blockquotes */
+.prose blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1em;
+  margin: 0.5em 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Horizontal rule */
+.prose hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1em 0;
+}
+
+/* Tables */
+.prose table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5em;
+  text-align: left;
+}
+
+.prose th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+/* Ensure nested elements inherit color properly */
+.prose * {
+  color: inherit;
+}
+
+/* Fix for specific text colors that should be inherited */
+.prose .text-gray-900,
+.prose .text-gray-800,
+.prose .text-gray-700,
+.prose .text-gray-600 {
+  color: inherit !important;
+}
+
+/* Math formula input field - ensure black text */
+.tiptap-editor input[type="text"] {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+.tiptap-editor input[type="text"]::placeholder {
+  color: #9CA3AF !important;
+}

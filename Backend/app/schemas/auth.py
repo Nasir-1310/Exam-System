@@ -54,3 +54,7 @@ class RegisterRequest(BaseModel):
                 "role": "ADMIN"  # ← ADD THIS LINE
             }
         }
+
+class CourseEnrollmentRequest(BaseModel):
+    user_id: int = Field(..., description="ID of the user to enroll")
+    course_id: int = Field(..., description="ID of the course to enroll in")
