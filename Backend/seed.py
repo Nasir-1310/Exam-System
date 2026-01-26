@@ -20,14 +20,14 @@ async def seed():
         users_data = [
             {
                 "name": "Admin User",
-                "email": "admin@exam.com",
-                "password": "password123",
+                "email": "admin@gmail.com",
+                "password": "12121212",
                 "role": "ADMIN",
                 "active_mobile": "01711111111"
             },
             {
-                "name": "Saikat Moderator",
-                "email": "saikat@exam.com",
+                "name": "Nasir Moderator",
+                "email": "nasir@exam.com",
                 "password": "password123",
                 "role": "MODERATOR",
                 "active_mobile": "01722222222"
