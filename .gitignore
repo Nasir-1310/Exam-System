@@ -5,6 +5,7 @@
 # ==================== Frontend ====================
 
 deploy.sh
+SERVER_SETUP.md
 
 # Next.js
 Frontend/.next/
