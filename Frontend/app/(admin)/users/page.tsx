@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import apiService from '@/lib/api';
-import type { User, Course } from '@/types/user';
+import type { User } from '@/types/user';
+import type { Course } from '@/types/course';
 import CustomModal from '@/components/common/CustomModal';
 
 export default function UsersPage() {

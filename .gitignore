@@ -4,6 +4,8 @@
 
 # ==================== Frontend ====================
 
+deploy.sh
+
 # Next.js
 Frontend/.next/
 Frontend/out/

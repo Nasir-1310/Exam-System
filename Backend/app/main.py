@@ -42,6 +42,11 @@ from app.api import (
     result_router
 )
 
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Exam System API!"}
+
 # Include routers
 app.include_router(test_router)
 app.include_router(auth_router)

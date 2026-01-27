@@ -299,7 +299,7 @@ export default function CourseExamsPage() {
 
     // Case 2 & 4: Paid exam = Need subscription
     if (!isExamFree) {
-      setPopup({ isOpen: true, type: "subscription", exam });
+      setPopup({ isOpen: true, type: "subscription", exam: exam ?? null });
       return;
     }
 
