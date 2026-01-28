@@ -3,8 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import CustomModal from '@/components/common/CustomModal';
-import CourseSelector from './CourseSelector';
-import type { User, Course, CreateUserData, UpdateUserData } from '@/types/user';
+import type { User, UserCreate, UserUpdate } from '@/types/user';
+import type { Course } from '@/types/course';
 import { userModalConfigs, createUserModalButtons } from '@/lib/userHelpers';
 
 interface UserManagementModalsProps {
@@ -14,7 +14,7 @@ interface UserManagementModalsProps {
   editingUser: User | null;
   courses: Course[];
   onCloseUserModal: () => void;
-  onSubmitUser: (data: CreateUserData | UpdateUserData, isEdit: boolean) => Promise<void>;
+  onSubmitUser: (data: UserCreate | UserUpdate, isEdit: boolean) => Promise<void>;
   
   // Delete Confirmation Modal
   showDeleteModal: boolean;
@@ -317,12 +317,12 @@ const UserManagementModals: React.FC<UserManagementModalsProps> = ({
               </div>
 
               {/* Course Selection */}
-              <CourseSelector
+              {/* <CourseSelector
                 courses={courses}
                 selectedCourseIds={formData.course_ids}
                 onChange={(courseIds) => setFormData({ ...formData, course_ids: courseIds })}
                 required
-              />
+              /> */}
             </div>
 
             {/* Footer */}

@@ -1,4 +1,5 @@
 // types/user.ts
+import { Course } from './course';
 export interface User {
   id: number;
   name: string;
@@ -8,6 +9,7 @@ export interface User {
   whatsapp?: string;
   dob?: string;
   created_at?: string;
+  courses?: Course[];
 }
 
 export interface UserCreate {

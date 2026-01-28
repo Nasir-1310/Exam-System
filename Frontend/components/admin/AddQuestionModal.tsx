@@ -199,7 +199,7 @@ export default function AddQuestionModal({
         option_b_image_url: "",
         option_c_image_url: "",
         option_d_image_url: "",
-        answer: 0,
+        answer: "",
       });
       
       const successConfig = createSuccessModal(

@@ -241,7 +241,7 @@ export default function CourseExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [popup, setPopup] = useState({ isOpen: false, type: "", exam: null });
+  const [popup, setPopup] = useState<{ isOpen: boolean; type: string; exam: Exam | null }>({ isOpen: false, type: "", exam: null });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const examsPerPage = 8;

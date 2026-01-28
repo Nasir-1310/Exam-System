@@ -110,8 +110,8 @@ export default function MCQExamPage() {
       const newAnswers = new Map(prev);
       newAnswers.set(questionId, {
         question_id: questionId,
-        selected_option: selectedOption,
-        submitted_answer_text: submittedAnswerText,
+        selected_option: selectedOption ?? undefined,
+        submitted_answer_text: submittedAnswerText ?? undefined,
       });
       return newAnswers;
     });

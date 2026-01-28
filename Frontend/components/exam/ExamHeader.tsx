@@ -7,7 +7,7 @@ import Timer, { TimerRef } from './Timer';
 interface ExamHeaderProps {
   duration: number;
   onTimeUp: () => void;
-  timerRef: React.RefObject<TimerRef>;
+  timerRef: React.RefObject<TimerRef | null>;
   isExpired: boolean;
 }
 

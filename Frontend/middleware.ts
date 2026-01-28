@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
 
   // Admin routes - only admin/moderator
-  const adminPaths = ['/admin'];
+  const adminPaths = ['/dashboard', '/users', '/exams', '/anonymous-users'];
   const isAdminPath = adminPaths.some(path => pathname.startsWith(path));
 
   // ==========================================
