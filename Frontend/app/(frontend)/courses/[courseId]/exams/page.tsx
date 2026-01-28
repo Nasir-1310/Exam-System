@@ -26,6 +26,9 @@ interface Course {
   is_free: boolean;
 }
 
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 // Auth/Subscription Popup
 function ActionPopup({ isOpen, onClose, type, exam, course, onLogin, onRegister }: any) {
   if (!isOpen) return null;
@@ -260,11 +263,11 @@ export default function CourseExamsPage() {
     try {
       setLoading(true);
       
-      const courseResponse = await fetch(`http://localhost:8000/api/courses/${courseId}`);
+      const courseResponse = await fetch(`${BASE_URL}/courses/${courseId}`);
       const courseData = await courseResponse.json();
       setCourse(courseData);
 
-      const examsResponse = await fetch(`http://localhost:8000/api/courses/${courseId}/exams`);
+      const examsResponse = await fetch(`${BASE_URL}/courses/${courseId}/exams`);
       const examsData = await examsResponse.json();
       setExams(Array.isArray(examsData) ? examsData : []);
     } catch (error) {

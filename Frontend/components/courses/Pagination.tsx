@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Course } from "@/lib/types";
 
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 // Pagination Component
 function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -192,7 +195,7 @@ export default function CoursesPage() {
     try {
       setLoading(true);
       // Replace with your actual API call
-      const response = await fetch("http://localhost:8000/api/courses");
+      const response = await fetch(`${BASE_URL}/courses/`);
       const data = await response.json();
       setCourses(data);
     } catch (error) {

@@ -14,6 +14,8 @@ interface Course {
   is_free: boolean;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 // Auth Popup Component
 function AuthPopup({ isOpen, onClose, type }: { isOpen: boolean; onClose: () => void; type: string }) {
   const router = useRouter();
@@ -169,8 +171,9 @@ export default function CoursesPage() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:8000/api/courses");
+      const response = await fetch(`${BASE_URL}/courses/`);
       const data = await response.json();
+      console.log('fetched courses data:', data);
       setCourses(data);
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -188,6 +191,10 @@ export default function CoursesPage() {
   ];
 
   const filterCourses = () => {
+    if (!Array.isArray(courses)) {
+      console.log('courses is not array', courses);
+      return [];
+    }
     let filtered = courses;
     
     if (activeTab === "free") {

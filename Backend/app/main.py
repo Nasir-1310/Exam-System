@@ -23,8 +23,10 @@ app = FastAPI(
     title="Exam System API",
     description="API for Exam System",
     version="1.0.0",
+    redirect_slashes=True,
 )
 
+print("CORS Origins:", settings.cors_origins_list)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

@@ -19,11 +19,12 @@ services:
       - db
     environment:
       DATABASE_URL: postgresql+asyncpg://examuser:exampass@db:5432/examdb
+      SEED_DATA: "false"
     ports:
       - "8000:8000"
     volumes:
       - ./Backend:/app
-    command: ["sh", "run.sh"]
+    command: ["./entrypoint.sh"]
 
   pgadmin:
     image: dpage/pgadmin4
@@ -38,15 +39,15 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 
-  # frontend: 
-  #   build: 
-  #     context: ./Frontend
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - NODE_ENV=production
-  #   depends_on:
-  #     - backend
+  frontend: 
+    build: 
+      context: ./Frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
 
 volumes:
   db_data:

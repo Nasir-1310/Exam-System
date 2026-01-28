@@ -27,6 +27,7 @@ packaging==25.0
 passlib==1.7.4
 pgvector==0.4.2
 pluggy==1.6.0
+psycopg2-binary==2.9.9
 # removed psycopg2-binary to use asyncpg for async SQLAlchemy
 pyasn1==0.6.1
 pycparser==2.23

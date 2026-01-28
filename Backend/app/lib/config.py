@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
         
     # CORS
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://alokbortikaedu.com:3000,http://alokbortikaedu.com"
     ALLOWED_METHODS: List[str] = ["GET", "POST", "PUT", "DELETE"]
     ALLOWED_HEADERS: List[str] = ["*", "Authorization"]
     ALLOWED_CREDENTIALS: bool = True
