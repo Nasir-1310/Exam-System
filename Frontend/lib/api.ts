@@ -444,6 +444,34 @@ async getDetailedExamResultAnonymous(examId: number, email: string): Promise<Res
 
   return response.json();
 }
+
+async getAllResults() {
+  const response = await fetch(`${API_BASE_URL}/result/`, {
+    headers: this.getHeaders(),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail = err.detail || err.message || JSON.stringify(err) || "Failed to fetch results";
+    throw new Error(detail);
+  }
+
+  return response.json();
+}
+
+async deleteResult(resultId: number) {
+  const response = await fetch(`${API_BASE_URL}/result/${resultId}`, {
+    method: "DELETE",
+    headers: this.getHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to delete result");
+  }
+
+  return response.json();
+}
 }
 
 export const apiService = new ApiService();

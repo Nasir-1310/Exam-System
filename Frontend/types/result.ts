@@ -16,7 +16,16 @@ export interface Result {
   incorrect_answers: number;
   mark: number;
   attempt_number: number;
-  created_at: string;
+  submission_time: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  exam?: {
+    id: number;
+    title: string;
+  };
 }
 
 export interface ResultDetailed extends Result {

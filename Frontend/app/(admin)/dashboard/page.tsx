@@ -12,6 +12,7 @@ interface Stats {
   totalQuestions: number;
   totalModerators: number;
   totalAnonymous: number;
+  totalResults: number;
 }
 
 interface Exam {
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
     totalQuestions: 0,
     totalModerators: 0,
     totalAnonymous: 0,
+    totalResults: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -46,11 +48,12 @@ export default function AdminDashboard() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const [exams, courses, users, anonymousUsers] = await Promise.all([
+      const [exams, courses, users, anonymousUsers, results] = await Promise.all([
         apiService.getAllExams(),
         apiService.getAllCourses(),
         apiService.getAllUsers(),
         apiService.getAnonymousUsers(),
+        apiService.getAllResults(),
       ]);
 
       const totalQuestions = exams.reduce(
@@ -67,6 +70,7 @@ export default function AdminDashboard() {
         totalQuestions,
         totalModerators: moderators.length,
         totalAnonymous: anonymousUsers.length,
+        totalResults: results.length,
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -141,6 +145,17 @@ export default function AdminDashboard() {
       ),
       bgColor: 'bg-indigo-100',
       link: '/users',
+    },
+    {
+      name: 'মোট ফলাফল',
+      value: stats.totalResults,
+      icon: (
+        <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      bgColor: 'bg-teal-100',
+      link: '/results',
     },
   ];
 

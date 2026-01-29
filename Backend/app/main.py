@@ -24,6 +24,8 @@ app = FastAPI(
     description="API for Exam System",
     version="1.0.0",
     redirect_slashes=True,
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
 )
 
 print("CORS Origins:", settings.cors_origins_list)
@@ -55,6 +57,7 @@ app.include_router(auth_router)
 app.include_router(exam_router)
 app.include_router(course_router)
 app.include_router(user_router)
+app.include_router(result_router)
 app.include_router(upload.router)  # ✅ No prefix needed - already in router
 
 # ✅ Mount static files AFTER including routers

@@ -4,9 +4,13 @@
 
 # ==================== Frontend ====================
 
+# Others
 deploy.sh
 SERVER_SETUP.md
 run_vps.sh
+*.tar.gz
+*.zip
+*.rar
 
 # Next.js
 Frontend/.next/
