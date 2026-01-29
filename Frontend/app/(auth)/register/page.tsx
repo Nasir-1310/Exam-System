@@ -86,7 +86,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
-            Alokbortika Edu
+            Alokbortika Bank BCS
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             নতুন অ্যাকাউন্ট তৈরি করুন

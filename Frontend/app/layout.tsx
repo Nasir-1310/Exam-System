@@ -6,8 +6,8 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    default: 'Alokbortika Edu',
-    template: '%s | Alokbortika Edu'
+    default: 'Alokbortika Bank BCS',
+    template: '%s | Alokbortika Bank BCS'
   },
   description: 'বিসিএস, ব্যাংক, প্রাইমারি সহ সকল চাকরির পরীক্ষার জন্য সম্পূর্ণ প্রস্তুতি',
 };

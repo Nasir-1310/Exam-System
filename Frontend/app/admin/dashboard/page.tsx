@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         </svg>
       ),
       bgColor: 'bg-blue-100',
-      link: '/users',
+      link: '/admin/users',
     },
     {
       name: 'Anonymous ব্যবহারকারী',
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
         </svg>
       ),
       bgColor: 'bg-rose-100',
-      link: '/anonymous-users',
+      link: '/admin/anonymous-users',
     },
     {
       name: 'মোট কোর্স',
@@ -111,7 +111,7 @@ export default function AdminDashboard() {
         </svg>
       ),
       bgColor: 'bg-green-100',
-      link: '/courses',
+      link: '/admin/courses',
     },
     {
       name: 'মোট পরীক্ষা',
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
         </svg>
       ),
       bgColor: 'bg-purple-100',
-      link: '/exams',
+      link: '/admin/exams',
     },
     {
       name: 'মোট প্রশ্ন',
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
         </svg>
       ),
       bgColor: 'bg-yellow-100',
-      link: '/exams',
+      link: '/admin/exams',
     },
     {
       name: 'মোট মডারেটর',
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
         </svg>
       ),
       bgColor: 'bg-indigo-100',
-      link: '/users',
+      link: '/admin/users',
     },
     {
       name: 'মোট ফলাফল',
@@ -155,7 +155,7 @@ export default function AdminDashboard() {
         </svg>
       ),
       bgColor: 'bg-teal-100',
-      link: '/results',
+      link: '/admin/results',
     },
   ];
 

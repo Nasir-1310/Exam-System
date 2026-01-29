@@ -102,7 +102,7 @@ export default function Navbar() {
                 </svg>
               </div>
               <span className="text-sm sm:text-base md:text-lg font-bold text-gray-800 truncate max-w-[150px] sm:max-w-none">
-                Alokbortika Edu
+                Alokbortika Bank
               </span>
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-18 md:h-20">
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+            <Link href="/" className="flex-1 flex items-center space-x-1.5 sm:space-x-2">
               <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md transform hover:scale-105 transition-transform duration-200">
                 <Image
                   src="/logo.png"
@@ -127,8 +127,8 @@ export default function Navbar() {
                   className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9"
                 />
               </div>
-              <span className="text-sm sm:text-base md:text-lg font-bold text-gray-800 truncate max-w-[120px] xs:max-w-[150px] sm:max-w-none">
-                Alokbortika Edu
+              <span className="flex-1 w-full text-sm sm:text-base md:text-lg font-bold text-gray-800 truncate max-w-none xs:max-w-none sm:max-w-none w-full">
+                Alokbortika Bank BCS
               </span>
             </Link>
 
@@ -185,7 +185,7 @@ export default function Navbar() {
 
                       {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                         <Link
-                          href="/dashboard"
+                          href="/admin/dashboard"
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
@@ -335,7 +335,7 @@ export default function Navbar() {
               <>
                 {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                   <Link
-                    href="/dashboard"
+                    href="/admin/dashboard"
                     className="flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all"
                     onClick={() => setIsOpen(false)}
                   >

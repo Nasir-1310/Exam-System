@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
 
   // Admin routes - only admin/moderator
-  const adminPaths = ['/dashboard', '/users', '/exams', '/anonymous-users'];
+  const adminPaths = ['/admin/dashboard', '/admin/users', '/admin/exams', '/admin/anonymous-users'];
   const isAdminPath = adminPaths.some(path => pathname.startsWith(path));
 
   // ==========================================
@@ -51,7 +51,7 @@ export function middleware(request: NextRequest) {
   if (token && (pathname === '/login' || pathname === '/register')) {
     // Check if admin
     if (userRole === 'ADMIN' || userRole === 'MODERATOR') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
     // Regular user
     // return NextResponse.redirect(new URL('/exam', request.url));

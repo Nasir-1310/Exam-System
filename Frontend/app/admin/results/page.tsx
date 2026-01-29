@@ -309,7 +309,7 @@ export default function ResultsPage() {
               </p>
               {selectedResult && (
                 <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm">
+                  <div className="text-sm text-black space-y-2">
                     <p><strong>পরীক্ষা:</strong> {selectedResult.exam?.title || `Exam ${selectedResult.exam_id}`}</p>
                     <p><strong>ব্যবহারকারী:</strong> {selectedResult.user?.name || `User ${selectedResult.user_id}`}</p>
                     <p><strong>স্কোর:</strong> {selectedResult.mark.toFixed(2)}</p>
