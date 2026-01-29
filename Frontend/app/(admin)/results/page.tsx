@@ -151,7 +151,7 @@ export default function ResultsPage() {
             <div>
               <p className="text-sm text-gray-600 mb-1">গড় স্কোর</p>
               <p className="text-3xl font-bold text-gray-900">
-                {results.length > 0 ? (results.reduce((sum, r) => sum + r.mark, 0) / results.length).toFixed(1) : '0.0'}
+                {displayedResults.length > 0 ? (displayedResults.reduce((sum, r) => sum + r.mark, 0) / displayedResults.length).toFixed(2) : '0.00'}
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-xl">
@@ -167,7 +167,7 @@ export default function ResultsPage() {
             <div>
               <p className="text-sm text-gray-600 mb-1">সর্বোচ্চ স্কোর</p>
               <p className="text-3xl font-bold text-gray-900">
-                {results.length > 0 ? Math.max(...results.map(r => r.mark)) : '0.0'}
+                {displayedResults.length > 0 ? Math.max(...displayedResults.map(r => r.mark)).toFixed(2) : '0.00'}
               </p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-xl">
@@ -240,7 +240,7 @@ export default function ResultsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {result.mark}
+                        {result.mark.toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -312,7 +312,7 @@ export default function ResultsPage() {
                   <div className="text-sm">
                     <p><strong>পরীক্ষা:</strong> {selectedResult.exam?.title || `Exam ${selectedResult.exam_id}`}</p>
                     <p><strong>ব্যবহারকারী:</strong> {selectedResult.user?.name || `User ${selectedResult.user_id}`}</p>
-                    <p><strong>স্কোর:</strong> {selectedResult.mark}</p>
+                    <p><strong>স্কোর:</strong> {selectedResult.mark.toFixed(2)}</p>
                   </div>
                 </div>
               )}
