@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <h3 className="text-xl font-bold mb-4">BCS Exam System</h3>
+            <h3 className="text-xl font-bold mb-4">Alokbortika Edu</h3>
             <p className="text-gray-400 text-sm">
               বিসিএস ও অন্যান্য চাকরি পরীক্ষার জন্য দেশের সেরা অনলাইন প্ল্যাটফর্ম
             </p>
@@ -49,7 +49,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-          <p>&copy; 2026 BCS Exam System. All rights reserved.</p>
+          <p>&copy; 2026 Alokbortika Edu. All rights reserved.</p>
         </div>
       </div>
     </footer>

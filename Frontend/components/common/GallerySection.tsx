@@ -2,6 +2,7 @@ import React from "react";
 import Button from "../ui/Button";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 const GallerySection = () => {
   return (
@@ -41,7 +42,7 @@ const GallerySection = () => {
               {/* Description */}
               <div className="space-y-4 text-gray-600 text-base sm:text-lg leading-relaxed">
                 <p>
-                  আপনার ক্যারিয়ারের স্বপ্ন পূরণে 'Alokbortika' অঙ্গীকারবদ্ধ। বিসিএস, ব্যাংক কিংবা সরকারি চাকরির যেকোনো প্রস্তুতিতে ঘরে বসেই সেরা গাইডলাইন পেতে আমাদের অনলাইন প্ল্যাটফর্মটিই হতে পারে আপনার প্রথম পছন্দ। চলুন, একসাথে আমরা সাফল্যের গল্প লিখি।
+                  আপনার ক্যারিয়ারের স্বপ্ন পূরণে &apos;Alokbortika&apos; অঙ্গীকারবদ্ধ। বিসিএস, ব্যাংক কিংবা সরকারি চাকরির যেকোনো প্রস্তুতিতে ঘরে বসেই সেরা গাইডলাইন পেতে আমাদের অনলাইন প্ল্যাটফর্মটিই হতে পারে আপনার প্রথম পছন্দ। চলুন, একসাথে আমরা সাফল্যের গল্প লিখি।
                 </p>
 
                 <p className="font-semibold">Alokbortika প্ল্যাটফর্ম থেকে চলমান কোর্সসমূহ:</p>
@@ -89,8 +90,8 @@ const GallerySection = () => {
                 </p>
 
                 <div className="mt-2 text-sm space-y-1 text-gray-700">
-                  <p>✅ হোয়াটসঅ্যাপ: 01600-268193</p>
-                  <p>✅ ফেসবুক পেজ: Alokbortika Bank BCS</p>
+                  <p>✅ হোয়াটসঅ্যাপ:  <Link className="text-blue-800 hover:text-blue-400 hover:underline" href="https://wa.me/01600268193">01600-268193</Link></p>
+                  <p>✅ ফেসবুক পেজ: <Link  className="text-blue-800 hover:text-blue-400 hover:underline" href="https://www.facebook.com/AlokbortikaBCSBank">Alokbortika Bank BCS</Link></p>
                 </div>
               </div>
 

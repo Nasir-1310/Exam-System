@@ -121,7 +121,7 @@ export default function AdminLayout({
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
             <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              BCS Admin
+              Alokbortika Edu Admin
             </h1>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -195,7 +195,7 @@ export default function AdminLayout({
               </svg>
             </button>
             <h1 className="text-lg font-bold text-white drop-shadow-sm">
-              BCS Admin
+              Alokbortika Edu Admin
             </h1>
             <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-bold">
