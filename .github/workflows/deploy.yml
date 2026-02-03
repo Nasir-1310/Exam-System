@@ -20,4 +20,7 @@ jobs:
         run: chmod +x ./deploy.sh # Essential if not already executable
 
       - name: Run Script
+        env:
+          VPS_IP: ${{ secrets.VPS_IP }} 
+          VPS_PASS: ${{ secrets.VPS_PASS }}
         run: ./deploy.sh
