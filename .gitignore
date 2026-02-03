@@ -10,7 +10,8 @@ SERVER_SETUP.md
 run_vps.sh
 *.tar.gz
 *.zip
-*.rar
+vps_secrets.txt
+run_vps.sh
 
 # Next.js
 Frontend/.next/
