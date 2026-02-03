@@ -85,7 +85,7 @@ export default function Navbar() {
     { label: 'হোম', href: '/' },
     { label: 'কোর্স সমূহ', href: '/courses' },
     { label: 'বুক', href: '/books' },
-    { label: 'ফ্রি কোর্স', href: '/free-course' },
+    // { label: 'ফ্রি কোর্স', href: '/free-course' },
     { label: 'পরিক্ষা', href: '/exam' },
   ];
 

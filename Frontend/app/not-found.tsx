@@ -8,16 +8,16 @@ export default function NotFound() {
     <div className="pt-16 min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center">
         {/* Animated 404 */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <div className="relative">
             <h1 className="text-9xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 animate-pulse">
               404
             </h1>
-            {/* <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-32 h-32 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-            </div> */}
+            </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Main Content */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-100">

@@ -402,7 +402,7 @@ export default function MCQExamPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">মোবাইল</label>
+                <label className="block text-sm font-medium text-gray-700">মোবাইল (ঐচ্ছিক)</label>
                 <input
                   type="tel"
                   required
