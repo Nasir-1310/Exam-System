@@ -8,8 +8,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 VPS_USER="root"
-VPS_IP=${{ secrets.VPS_IP }}
-VPS_PASS=${{ secrets.VPS_PASS }}
+# VPS_IP=${{ secrets.VPS_IP }}
+# VPS_PASS=${{ secrets.VPS_PASS }}
 ARCHIVE_NAME="exam-system.tar.gz"
 PROJECT_DIR="Exam-System"
 
