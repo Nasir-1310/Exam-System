@@ -12,7 +12,7 @@ import MathContentRenderer from "@/components/editor/MathContentRenderer";
 import { getBrowserToken } from "@/lib/authToken";
 import Swal from "sweetalert2";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 export default function MCQExamPage() {
   const params = useParams();
@@ -112,8 +112,8 @@ export default function MCQExamPage() {
       const newAnswers = new Map(prev);
       newAnswers.set(questionId, {
         question_id: questionId,
-        selected_option: selectedOption,
-        submitted_answer_text: submittedAnswerText,
+        selected_option: selectedOption ?? undefined,
+        submitted_answer_text: submittedAnswerText ?? undefined,
       });
       return newAnswers;
     });
@@ -162,7 +162,7 @@ export default function MCQExamPage() {
     try {
       setLoading(true);
       const answersArray = Array.from(userAnswers.values());
-      const res = await fetch(`${API_BASE}/api/exams/${examId}/submit`, {
+      const res = await fetch(`${API_BASE}/exams/${examId}/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -243,7 +243,7 @@ export default function MCQExamPage() {
 
       const answersArray = Array.from(userAnswers.values());
 
-      const res = await fetch(`${API_BASE}/api/exams/${examId}/submit/anonymous`, {
+      const res = await fetch(`${API_BASE}/exams/${examId}/submit/anonymous/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -276,11 +276,11 @@ export default function MCQExamPage() {
   };
 
   const handleAnonStart = () => {
-    if (!anonForm.name.trim() || !anonForm.email.trim()) {
+    if (!anonForm.name.trim() || !anonForm.email.trim() || !anonForm.active_mobile.trim()) {
       Swal.fire({
         icon: "warning",
         title: "তথ্য প্রয়োজন",
-        text: "নাম এবং ইমেইল দিন।",
+        text: "নাম, ইমেইল এবং মোবাইল দিন।",
       });
       return;
     }
@@ -405,6 +405,7 @@ export default function MCQExamPage() {
                 <label className="block text-sm font-medium text-gray-700">মোবাইল (ঐচ্ছিক)</label>
                 <input
                   type="tel"
+                  required
                   value={anonForm.active_mobile}
                   onChange={(e) => setAnonForm({ ...anonForm, active_mobile: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"

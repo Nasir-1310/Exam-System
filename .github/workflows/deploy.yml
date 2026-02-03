@@ -1,0 +1,23 @@
+name: Run Shell Script
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  execute-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4  # Required to access files in your repo
+
+      - name: Create .env file
+        run: |
+            echo -e "DB_PASSWORD=${{ secrets.BACKEND_ENV }}" >> ./Backend/.env
+            echo -e "API_KEY=${{ secrets.FRONTEND_ENV }}" >> ./Frontend/.env
+
+      - name: Make Script Executable
+        run: chmod +x ./deploy.sh # Essential if not already executable
+
+      - name: Run Script
+        run: ./deploy.sh

@@ -23,8 +23,12 @@ app = FastAPI(
     title="Exam System API",
     description="API for Exam System",
     version="1.0.0",
+    redirect_slashes=True,
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
 )
 
+print("CORS Origins:", settings.cors_origins_list)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -42,12 +46,18 @@ from app.api import (
     result_router
 )
 
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Exam System API!"}
+
 # Include routers
 app.include_router(test_router)
 app.include_router(auth_router)
 app.include_router(exam_router)
 app.include_router(course_router)
 app.include_router(user_router)
+app.include_router(result_router)
 app.include_router(upload.router)  # ✅ No prefix needed - already in router
 
 # ✅ Mount static files AFTER including routers

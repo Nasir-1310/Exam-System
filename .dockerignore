@@ -1,0 +1,11 @@
+# .dockerignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.git
+node_modules
+Frontend/node_modules
+Frontend/.next
+exam-system.tar.gz

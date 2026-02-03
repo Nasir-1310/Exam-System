@@ -161,7 +161,7 @@ export default function MCQExamResultPage() {
 
                 const resolveCorrectIndex = () => {
                   const raw = (question as any).answer as string | undefined;
-                  if (!raw) return null;
+                  if (!raw) return undefined;
                   const normalized = raw.trim().toUpperCase();
                   const map: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
                   if (normalized in map) return map[normalized];
@@ -169,7 +169,7 @@ export default function MCQExamResultPage() {
                   if (!Number.isNaN(maybeNumber) && maybeNumber >= 1 && maybeNumber <= 4) {
                     return maybeNumber - 1;
                   }
-                  return null;
+                  return undefined;
                 };
 
                 // Create a placeholder answer detail for skipped questions
@@ -178,8 +178,8 @@ export default function MCQExamResultPage() {
                   question_id: question.id,
                   exam_id: exam.id,
                   result_id: result.id,
-                  selected_option: null,
-                  submitted_answer_text: null,
+                  selected_option: undefined,
+                  submitted_answer_text: undefined,
                   is_correct: false,
                   correct_option_index: resolveCorrectIndex(),
                   marks_obtained: 0

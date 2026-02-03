@@ -91,6 +91,7 @@ export interface Exam {
   allow_multiple_attempts: boolean;
   show_detailed_results_after?: string; // ISO string
   is_premium?: boolean; // This was in ExamCardProps, keep for compatibility
+  thumbnail_url?: string;
 }
 
 export interface Answer {

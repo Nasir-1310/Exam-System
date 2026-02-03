@@ -372,7 +372,20 @@ async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answ
     db.add(result_obj)
     await db.commit()
     await db.refresh(result_obj)
-    return result_obj
+
+    # Re-query the result with related objects eagerly loaded to avoid
+    # triggering lazy loads during response serialization (MissingGreenlet).
+    result_with_rels_q = await db.execute(
+        select(Result)
+        .options(
+            selectinload(Result.answers_details),
+            selectinload(Result.user),
+            selectinload(Result.exam).selectinload(Exam.questions)
+        )
+        .where(Result.id == result_obj.id)
+    )
+    result_with_rels = result_with_rels_q.scalars().first()
+    return result_with_rels
 
 
 async def submit_exam_anonymous_service(db: AsyncSession, exam_id: int, name: str, email: str, active_mobile: Optional[str], answers: List[dict]) -> Result:
@@ -384,7 +397,11 @@ async def submit_exam_anonymous_service(db: AsyncSession, exam_id: int, name: st
 async def get_detailed_exam_result_service(db: AsyncSession, exam_id: int, user_id: int) -> ResultDetailedResponse:
     """Get detailed exam results for a user, with answers revealed after a certain time."""
     # Get the latest result for the user for this exam
-    result_query = select(Result).options(selectinload(Result.answers_details)).options(selectinload(Result.exam).selectinload(Exam.questions))
+    result_query = select(Result).options(
+        selectinload(Result.answers_details),
+        selectinload(Result.user),
+        selectinload(Result.exam).selectinload(Exam.questions)
+    )
     result_query = result_query.where(Result.exam_id == exam_id, Result.user_id == user_id)
     result_query = result_query.order_by(Result.attempt_number.desc())
     latest_result = await db.execute(result_query)

@@ -242,8 +242,8 @@ DESCRIPTION: A prime number is a natural number greater than 1 that has no posit
   };
 
   const handleEditQuestion = (index: number, field: string, value: string | number) => {
-    const updated = [...parsedQuestions]; 
-    (updated[index] as Record<string, string | number>)[field] = value;
+    const updated = [...parsedQuestions];
+    updated[index] = { ...updated[index], [field]: value };
     setParsedQuestions(updated);
   };
 

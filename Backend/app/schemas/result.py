@@ -2,6 +2,25 @@ from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.schemas.answer import AnswerResponse
+from app.schemas.user import UserResponse
+from app.schemas.exam import ExamResponse
+
+
+class ExamBasicResponse(BaseModel):
+    id: int
+    title: str
+    
+    class Config:
+        from_attributes = True
+
+
+class UserBasicResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    
+    class Config:
+        from_attributes = True
 
 
 class AnswerCreate(BaseModel):
@@ -43,6 +62,24 @@ class ResultResponse(BaseModel):
     mark: float
     submission_time: datetime
     attempt_number: int
+    user: Optional[UserBasicResponse] = None
+    exam: Optional[ExamBasicResponse] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class AdminResultResponse(BaseModel):
+    id: int
+    exam_id: int
+    user_id: int
+    correct_answers: int
+    incorrect_answers: int
+    mark: float
+    submission_time: datetime
+    attempt_number: int
+    user: Optional[UserResponse] = None
+    exam: Optional[ExamResponse] = None
     
     class Config:
         from_attributes = True

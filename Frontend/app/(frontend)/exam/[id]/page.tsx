@@ -9,6 +9,8 @@ import ExamHeader from "@/components/exam/ExamHeader";
 import { TimerRef } from "@/components/exam/Timer";
 import MathContentRenderer from "@/components/editor/MathContentRenderer";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+
 interface Question {
   id: number;
   content: string;
@@ -145,7 +147,7 @@ export default function ExamTakingPage() {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/api/exams/${examId}`, {
+      const response = await fetch(`${API_BASE_URL}/exams/${examId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -188,7 +190,7 @@ export default function ExamTakingPage() {
 
       // Check premium requirement
       if (data.requires_premium) {
-        const userResponse = await fetch('http://localhost:8000/api/users/me', {
+        const userResponse = await fetch(`${API_BASE_URL}/users/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const userData = await userResponse.json();
@@ -206,7 +208,7 @@ export default function ExamTakingPage() {
       
       // Check if already attempted
       const attemptResponse = await fetch(
-        `http://localhost:8000/api/exams/${examId}/check-attempt`,
+        `${API_BASE_URL}/exams/${examId}/check-attempt`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       
@@ -289,7 +291,7 @@ export default function ExamTakingPage() {
       
       const timeSpent = (exam!.duration_minutes * 60) - (timerRef.current?.getTimeLeft() || 0);
       
-      const response = await fetch(`http://localhost:8000/api/exams/${examId}/submit`, {
+      const response = await fetch(`${API_BASE_URL}/exams/${examId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

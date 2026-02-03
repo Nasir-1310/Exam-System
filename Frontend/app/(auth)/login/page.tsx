@@ -41,7 +41,7 @@ export default function LoginPage() {
 
       // ✅ FIXED: Changed /admin/dashboard to /dashboard
       if (response.user.role === 'ADMIN' || response.user.role === 'MODERATOR') {
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       } else {
         router.push('/');
       }
@@ -58,7 +58,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900">
-            BCS Exam System
+            Alokbortika Bank BCS
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             আপনার অ্যাকাউন্টে লগইন করুন
@@ -155,7 +155,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center text-xs text-gray-500">
-          <p>© 2026 BCS Exam System. All rights reserved.</p>
+          <p>© 2026 Alokbortika Bank. All rights reserved.</p>
         </div>
       </div>
     </div>

@@ -281,6 +281,7 @@ async def submit_exam(
 
 # ✅ PUBLIC - Anonymous submit (creates/fetches an anonymous user)
 @router.post("/{exam_id}/submit/anonymous", response_model=ResultResponse)
+@router.post("/{exam_id}/submit/anonymous/", response_model=ResultResponse)
 async def submit_exam_anonymous(
     exam_id: int,
     payload: AnonymousExamSubmitRequest,

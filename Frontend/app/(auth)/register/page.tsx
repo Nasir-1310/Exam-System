@@ -86,7 +86,7 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
-            BCS Exam System
+            Alokbortika Bank BCS
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             নতুন অ্যাকাউন্ট তৈরি করুন
@@ -254,7 +254,7 @@ export default function RegisterPage() {
 
         {/* Footer */}
         <div className="text-center text-xs text-gray-500">
-          <p>© 2026 BCS Exam System. All rights reserved.</p>
+          <p>© 2026 Alokbortika Edu. All rights reserved.</p>
         </div>
       </div>
     </div>

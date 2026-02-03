@@ -119,6 +119,17 @@ export default function ExamPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-12 px-4 pt-20">
       <div className="max-w-7xl mx-auto">
+        {/* Banner */}
+        <div className="mb-8 mt-4 md:mt-8">
+          <div className="w-full rounded-2xl overflow-hidden shadow-lg">
+            <img
+              src="/courses.png"
+              alt="Courses banner"
+              className="w-full h-56 md:h-72 object-cover h-full"
+            />
+          </div>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-16">
           <div className="inline-block p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl mb-6">

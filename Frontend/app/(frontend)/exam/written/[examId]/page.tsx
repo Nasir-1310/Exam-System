@@ -104,7 +104,7 @@ export default function WrittenExamTakingPage() {
               </p>
             </div>
             <Timer
-              initialSeconds={exam.duration_minutes * 60}
+              duration={exam.duration_minutes * 60}
               onTimeUp={submitExam}
             />
           </div>

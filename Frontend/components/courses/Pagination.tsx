@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Course } from "@/lib/types";
+
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
 
 // Pagination Component
-function Pagination({ currentPage, totalPages, onPageChange }) {
+function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
   
   return (
@@ -43,7 +47,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 }
 
 // Auth Popup Component
-function AuthPopup({ isOpen, onClose, type }) {
+function AuthPopup({ isOpen, onClose, type }: { isOpen: boolean; onClose: () => void; type: string | null }) {
   const router = useRouter();
   
   if (!isOpen) return null;
@@ -85,7 +89,7 @@ function AuthPopup({ isOpen, onClose, type }) {
 }
 
 // Course Card Component
-function CourseCard({ course, onExamClick, onLiveClassClick, isLoggedIn }) {
+function CourseCard({ course, onExamClick, onLiveClassClick, isLoggedIn }: { course: any; onExamClick: (course: Course) => void; onLiveClassClick: (course: Course) => void; isLoggedIn: boolean }) {
   const router = useRouter();
   
   return (
@@ -169,10 +173,10 @@ function CourseCard({ course, onExamClick, onLiveClassClick, isLoggedIn }) {
 export default function CoursesPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
-  const [courses, setCourses] = useState([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [authPopup, setAuthPopup] = useState({ isOpen: false, type: null, course: null });
+  const [authPopup, setAuthPopup] = useState<{ isOpen: boolean; type: string | null; course: Course | null }>({ isOpen: false, type: null, course: null });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   const coursesPerPage = 8;
@@ -191,7 +195,7 @@ export default function CoursesPage() {
     try {
       setLoading(true);
       // Replace with your actual API call
-      const response = await fetch("http://localhost:8000/api/courses");
+      const response = await fetch(`${BASE_URL}/courses/`);
       const data = await response.json();
       setCourses(data);
     } catch (error) {
@@ -232,7 +236,7 @@ export default function CoursesPage() {
     currentPage * coursesPerPage
   );
 
-  const handleExamClick = (course) => {
+  const handleExamClick = (course: Course) => {
     if (!isLoggedIn && !course.is_free) {
       setAuthPopup({ isOpen: true, type: "exam", course });
     } else {
@@ -240,7 +244,7 @@ export default function CoursesPage() {
     }
   };
 
-  const handleLiveClassClick = (course) => {
+  const handleLiveClassClick = (course: Course) => {
     if (!isLoggedIn) {
       setAuthPopup({ isOpen: true, type: "live", course });
     } else {

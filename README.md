@@ -1,5 +1,7 @@
-"# Exam-System"
+## `Exam-System`
 
+
+### # Project File Structure:
 ```bash
 EXAM-SYSTEM/
 │
@@ -172,4 +174,19 @@ EXAM-SYSTEM/
 │ └─ README.md
 │
 └─ README.md
+```
+
+
+
+### # Install Docker on AlmaLinux
+```bash
+sudo dnf remove podman*
+sudo dnf update -y
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
+sudo systemctl enable --now docker
+docker compose version
+// as non-rooted
+sudo usermod -aG docker $USER
+
 ```
