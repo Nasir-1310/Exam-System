@@ -1,4 +1,4 @@
-name: Run Shell Script
+name: Deploy Application
 on:
   push:
     branches:
