@@ -118,12 +118,12 @@ sshpass -p "$VPS_PASS" ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP << 'END
   cd /root
   
   # Backup existing deployment
-  if [ -d "Exam-System" ]; then
-    BACKUP_NAME="Exam-System-backup-$(date +%Y%m%d-%H%M%S)"
-    echo -e "${YELLOW}[VPS]${NC} Creating backup: $BACKUP_NAME"
-    cp -r Exam-System "$BACKUP_NAME"
-    ls -dt Exam-System-backup-* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
-  fi
+  # if [ -d "Exam-System" ]; then
+  #   BACKUP_NAME="Exam-System-backup-$(date +%Y%m%d-%H%M%S)"
+  #   echo -e "${YELLOW}[VPS]${NC} Creating backup: $BACKUP_NAME"
+  #   cp -r Exam-System "$BACKUP_NAME"
+  #   ls -dt Exam-System-backup-* 2>/dev/null | tail -n +4 | xargs rm -rf 2>/dev/null || true
+  # fi
   
   # Extract archive
   echo -e "${GREEN}[VPS]${NC} Extracting archive..."
