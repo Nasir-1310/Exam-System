@@ -16,11 +16,13 @@ interface Exam {
   course_id: number | null;
   questions: any[];
   is_mcq: boolean;
+  is_free?: boolean;
 }
 
 interface Course {
   id: number;
   title: string;
+  is_free?: boolean;
 }
 
 export default function ExamPage() {
@@ -53,8 +55,7 @@ export default function ExamPage() {
     }
   };
 
-  const handleExamClick = (exam: Exam) => {
-    console.log("Navigating to exam:", exam);
+  const handleExamClick = async (exam: Exam) => {
     const startTime = new Date(exam.start_time);
     const now = new Date();
 
@@ -62,26 +63,76 @@ export default function ExamPage() {
       Swal.fire({
         icon: "info",
         title: "পরীক্ষা শুরু হয়নি",
-        text: `এই পরীক্ষা শুরু হবে: ${startTime.toLocaleString()}`,
+        text: `এই পরীক্ষা শুরু হবে: ${startTime.toLocaleString("bn-BD", {
+          timeZone: "UTC",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })}`,
         confirmButtonText: "ঠিক আছে",
       });
       return;
     }
 
-    if (exam.is_mcq) {
-      router.push(`/exam/mcq/${exam.id}`);
-    } else {
-      router.push(`/exam/written/${exam.id}`);
+    try {
+      const access = await apiService.checkExamAccess(exam.id, exam.course_id ?? undefined);
+      if (access?.allowed) {
+        router.push(`/exam/${exam.is_mcq ? "mcq" : "written"}/${exam.id}`);
+        return;
+      }
+
+      if (access?.reason === "login_required") {
+        Swal.fire({
+          icon: "info",
+          title: "লগইন প্রয়োজন",
+          text: "এই পরীক্ষা অ্যাক্সেস করতে লগইন করুন।",
+          confirmButtonText: "লগইন করুন",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            router.push("/login");
+          }
+        });
+        return;
+      }
+
+      if (access?.reason === "not_enrolled") {
+        Swal.fire({
+          icon: "info",
+          title: "এনরোলমেন্ট প্রয়োজন",
+          text: "এই পরীক্ষায় এনরোল করা প্রয়োজন।",
+          confirmButtonText: "পরবর্তীতে চালিয়ে যান",
+        });
+        return;
+      }
+
+      Swal.fire({
+        icon: "info",
+        title: "সাবস্ক্রিপশন প্রয়োজন",
+        text: "এই পরীক্ষার অ্যাক্সেস করতে সাবস্ক্রিপশন আবশ্যক।",
+        confirmButtonText: "পরবর্তীতে চালিয়ে যান",
+      });
+    } catch (error) {
+      console.error("Access check failed", error);
+      Swal.fire({
+        icon: "error",
+        title: "অ্যাক্সেস ব্যর্থ",
+        text: "পরীক্ষার অ্যাক্সেস করতে সমস্যা হয়েছে।",
+      });
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleString("bn-BD", {
+      timeZone: "UTC",
       year: "numeric",
-      month: "short",
+      month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      hour12: true,
     });
   };
 

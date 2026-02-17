@@ -6,6 +6,8 @@ import { Question } from "@/lib/types";
 import { useEffect, useState } from "react";
 import MathContentRenderer from "@/components/editor/MathContentRenderer"; // ADD THIS IMPORT
 
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/api$/, "");
+
 interface QuestionCardProps {
   question: Question;
   selectedOption?: number | null;
@@ -56,7 +58,7 @@ export default function QuestionCard({
     }
     
     if (imageUrl.startsWith('/uploads/')) {
-      return `http://127.0.0.1:8000${imageUrl}`;
+      return `${API_ORIGIN}${imageUrl}`;
     }
     
     if (imageUrl.startsWith('/questions/') || imageUrl.startsWith('/')) {

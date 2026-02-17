@@ -412,21 +412,33 @@ class ApiService {
     return response.json();
   }
 
-  async checkExamAccess(examId: number) {
-    const response = await fetch(`${API_BASE_URL}/exams/${examId}/access-check`, {
-      headers: this.getHeaders(),
-    });
+  async checkExamAccess(examId: number, courseId?: number) {
+    const courseScoped = courseId
+      ? `${API_BASE_URL}/courses/${courseId}/exams/${examId}/access-check`
+      : null;
+    const fallback = `${API_BASE_URL}/exams/${examId}/access-check`;
 
-    if (response.status === 401 || response.status === 403) {
-      return { allowed: false, reason: "login_required" };
+    const tryFetch = async (url: string) => {
+      const response = await fetch(url, { headers: this.getHeaders() });
+      if (response.status === 401 || response.status === 403) {
+        return { allowed: false, reason: "login_required" };
+      }
+      if (response.status === 404) {
+        return { notFound: true } as any;
+      }
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "Failed to check exam access");
+      }
+      return response.json();
+    };
+
+    if (courseScoped) {
+      const first = await tryFetch(courseScoped);
+      if (!(first as any).notFound) return first;
     }
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(error.detail || "Failed to check exam access");
-    }
-
-    return response.json();
+    return tryFetch(fallback);
   }
 
   async createExam(examData: any) {
