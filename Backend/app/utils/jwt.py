@@ -13,6 +13,24 @@ from app.models.user import User
 from sqlalchemy import select
 from app.lib.config import settings
 
+# Cap expiry to avoid datetime overflow when extremely large TTL values are configured.
+def _compute_expiry(expires_delta: Optional[timedelta]) -> datetime:
+    base = datetime.now(timezone.utc)
+    default_delta = timedelta(
+        minutes=settings.TOKEN_EXPIRE_MINUTES,
+        hours=settings.TOKEN_EXPIRE_HOURS,
+        days=settings.TOKEN_EXPIRE_DAYS,
+    )
+    delta = expires_delta or default_delta
+    safe_max = datetime.max.replace(tzinfo=timezone.utc) - timedelta(days=1)
+    try:
+        exp = base + delta
+        if exp > safe_max:
+            return safe_max
+        return exp
+    except OverflowError:
+        return safe_max
+
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/login/docs",
     scheme_name="JWT",
@@ -24,7 +42,7 @@ def create_token(*, user_id: Union[int, str, UUID], role: str, expires_delta: Op
         "role": role,
         "iat": int(datetime.now(timezone.utc).timestamp()),
     }
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES, days=settings.TOKEN_EXPIRE_DAYS, hours=settings.TOKEN_EXPIRE_HOURS))
+    expire = _compute_expiry(expires_delta)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
