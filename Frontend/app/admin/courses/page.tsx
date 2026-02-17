@@ -40,9 +40,16 @@ export default function AdminCoursesPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Course>(initialForm);
   const [showForm, setShowForm] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState<number | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState({ title: "", message: "", description: "" });
+  const [studentModalCourse, setStudentModalCourse] = useState<Course | null>(null);
+  const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [courseStudents, setCourseStudents] = useState<any[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | "">("");
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   useEffect(() => {
     loadCourses();
@@ -65,11 +72,70 @@ export default function AdminCoursesPage() {
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      const users = await apiService.getAllUsers();
+      setAvailableUsers(users);
+    } catch (err: any) {
+      setModalMessage({
+        title: "ইউজার লোড ব্যর্থ",
+        message: err?.message || "ইউজার তালিকা আনা যায়নি",
+        description: "আবার চেষ্টা করুন।",
+      });
+      setShowErrorModal(true);
+    }
+  };
+
+  const loadCourseStudents = async (courseId: number) => {
+    try {
+      setLoadingStudents(true);
+      const students = await apiService.getCourseStudents(courseId);
+      setCourseStudents(Array.isArray(students) ? students : students?.data || []);
+    } catch (err: any) {
+      setModalMessage({
+        title: "স্টুডেন্ট লোড ব্যর্থ",
+        message: err?.message || "স্টুডেন্ট তালিকা আনা যায়নি",
+        description: "আবার চেষ্টা করুন।",
+      });
+      setShowErrorModal(true);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const openCreateForm = () => {
+    setForm(initialForm);
+    setEditingCourseId(null);
+    setShowForm(true);
+  };
+
+  const normalizeDate = (value?: string) => {
+    if (!value) return today();
+    return value.slice(0, 10);
+  };
+
+  const startEditCourse = (course: Course) => {
+    setEditingCourseId(course.id);
+    setForm({
+      ...course,
+      early_bird_end_date: normalizeDate(course.early_bird_end_date),
+      discount_start_date: normalizeDate(course.discount_start_date),
+      discount_end_date: normalizeDate(course.discount_end_date),
+    });
+    setShowForm(true);
+  };
+
+  const openStudentsManager = async (course: Course) => {
+    setStudentModalCourse(course);
+    setShowStudentsModal(true);
+    await Promise.all([loadUsers(), loadCourseStudents(course.id)]);
+  };
+
   const handleInput = (key: keyof Course, value: string | boolean | number) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleCreate = async () => {
+  const handleSaveCourse = async () => {
     if (!form.title) {
       setModalMessage({ title: "শিরোনাম দিন", message: "কোর্সের শিরোনাম প্রয়োজন", description: "" });
       setShowErrorModal(true);
@@ -91,14 +157,20 @@ export default function AdminCoursesPage() {
 
     try {
       setSaving(true);
-      await apiService.createCourse(payload);
-      setModalMessage({ title: "সফল", message: "কোর্স তৈরি হয়েছে", description: "" });
+      if (editingCourseId) {
+        await apiService.updateCourse(editingCourseId, payload);
+        setModalMessage({ title: "আপডেট সফল", message: "কোর্স আপডেট হয়েছে", description: "" });
+      } else {
+        await apiService.createCourse(payload);
+        setModalMessage({ title: "সফল", message: "কোর্স তৈরি হয়েছে", description: "" });
+      }
       setShowSuccessModal(true);
       setShowForm(false);
       setForm(initialForm);
+      setEditingCourseId(null);
       await loadCourses();
     } catch (err: any) {
-      setModalMessage({ title: "ব্যর্থ", message: err?.message || "কোর্স তৈরি হয়নি", description: "" });
+      setModalMessage({ title: "ব্যর্থ", message: err?.message || "কোর্স সংরক্ষণ হয়নি", description: "" });
       setShowErrorModal(true);
     } finally {
       setSaving(false);
@@ -113,6 +185,31 @@ export default function AdminCoursesPage() {
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
     } catch (err: any) {
       setModalMessage({ title: "মুছতে ব্যর্থ", message: err?.message || "কোর্স মুছতে ব্যর্থ", description: "" });
+      setShowErrorModal(true);
+    }
+  };
+
+  const handleAddStudent = async () => {
+    if (!studentModalCourse || !selectedStudentId) return;
+    try {
+      await apiService.enrollUserInCourse({ user_id: Number(selectedStudentId), course_id: studentModalCourse.id });
+      setSelectedStudentId("");
+      await loadCourseStudents(studentModalCourse.id);
+      setModalMessage({ title: "সফল", message: "স্টুডেন্ট যোগ হয়েছে", description: "" });
+      setShowSuccessModal(true);
+    } catch (err: any) {
+      setModalMessage({ title: "ব্যর্থ", message: err?.message || "স্টুডেন্ট যোগ হয়নি", description: "" });
+      setShowErrorModal(true);
+    }
+  };
+
+  const handleRemoveStudent = async (userId: number) => {
+    if (!studentModalCourse) return;
+    try {
+      await apiService.removeUserFromCourse(studentModalCourse.id, userId);
+      await loadCourseStudents(studentModalCourse.id);
+    } catch (err: any) {
+      setModalMessage({ title: "ব্যর্থ", message: err?.message || "স্টুডেন্ট বাদ দেয়া যায়নি", description: "" });
       setShowErrorModal(true);
     }
   };
@@ -139,7 +236,7 @@ export default function AdminCoursesPage() {
           <p className="text-gray-600">কোর্স তৈরি, তালিকা ও মুছে ফেলুন</p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openCreateForm}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -206,12 +303,26 @@ export default function AdminCoursesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => handleDelete(course.id)}
-                          className="text-red-600 hover:text-red-800 font-medium"
-                        >
-                          মুছে ফেলুন
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => startEditCourse(course)}
+                            className="text-indigo-600 hover:text-indigo-800 font-medium"
+                          >
+                            সম্পাদনা
+                          </button>
+                          <button
+                            onClick={() => openStudentsManager(course)}
+                            className="text-emerald-600 hover:text-emerald-800 font-medium"
+                          >
+                            স্টুডেন্ট
+                          </button>
+                          <button
+                            onClick={() => handleDelete(course.id)}
+                            className="text-red-600 hover:text-red-800 font-medium"
+                          >
+                            মুছে ফেলুন
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -226,8 +337,8 @@ export default function AdminCoursesPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">নতুন কোর্স</h3>
-              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900">{editingCourseId ? "কোর্স আপডেট" : "নতুন কোর্স"}</h3>
+              <button onClick={() => { setShowForm(false); setEditingCourseId(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -240,7 +351,7 @@ export default function AdminCoursesPage() {
                   type="text"
                   value={form.title}
                   onChange={(e) => handleInput("title", e.target.value)}
-                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                   placeholder="কোর্স শিরোনাম"
                 />
               </div>
@@ -249,7 +360,7 @@ export default function AdminCoursesPage() {
                 <textarea
                   value={form.description}
                   onChange={(e) => handleInput("description", e.target.value)}
-                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                   rows={3}
                   placeholder="কোর্স সম্পর্কে লিখুন"
                 />
@@ -260,7 +371,7 @@ export default function AdminCoursesPage() {
                   type="text"
                   value={form.thumbnail}
                   onChange={(e) => handleInput("thumbnail", e.target.value)}
-                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                   placeholder="https://..."
                 />
               </div>
@@ -271,7 +382,7 @@ export default function AdminCoursesPage() {
                     type="number"
                     value={form.price}
                     onChange={(e) => handleInput("price", Number(e.target.value))}
-                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                     disabled={form.is_free}
                   />
                 </div>
@@ -281,7 +392,7 @@ export default function AdminCoursesPage() {
                     type="number"
                     value={form.early_bird_price}
                     onChange={(e) => handleInput("early_bird_price", Number(e.target.value))}
-                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                     disabled={form.is_free}
                   />
                 </div>
@@ -293,7 +404,7 @@ export default function AdminCoursesPage() {
                     type="date"
                     value={form.early_bird_end_date}
                     onChange={(e) => handleInput("early_bird_end_date", e.target.value)}
-                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                   />
                 </div>
                 <div>
@@ -302,7 +413,7 @@ export default function AdminCoursesPage() {
                     type="number"
                     value={form.discount}
                     onChange={(e) => handleInput("discount", Number(e.target.value))}
-                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                   />
                 </div>
                 <div className="flex items-center gap-3 mt-6">
@@ -311,7 +422,7 @@ export default function AdminCoursesPage() {
                     type="checkbox"
                     checked={form.is_free}
                     onChange={(e) => handleInput("is_free", e.target.checked)}
-                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                    className="h-4 w-4 text-gray-700 border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   />
                   <label htmlFor="is_free" className="text-sm text-gray-700">ফ্রি কোর্স</label>
                 </div>
@@ -323,7 +434,7 @@ export default function AdminCoursesPage() {
                     type="date"
                     value={form.discount_start_date}
                     onChange={(e) => handleInput("discount_start_date", e.target.value)}
-                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                   />
                 </div>
                 <div>
@@ -332,7 +443,7 @@ export default function AdminCoursesPage() {
                     type="date"
                     value={form.discount_end_date}
                     onChange={(e) => handleInput("discount_end_date", e.target.value)}
-                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
                   />
                 </div>
               </div>
@@ -345,12 +456,80 @@ export default function AdminCoursesPage() {
                 বাতিল
               </button>
               <button
-                onClick={handleCreate}
+                onClick={handleSaveCourse}
                 disabled={saving}
                 className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg"
               >
-                {saving ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
+                {saving ? "সংরক্ষণ হচ্ছে..." : editingCourseId ? "আপডেট করুন" : "সংরক্ষণ করুন"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showStudentsModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">স্টুডেন্ট ম্যানেজ ({studentModalCourse?.title})</h3>
+                <p className="text-sm text-gray-500">কোর্সে স্টুডেন্ট যোগ/সরান</p>
+              </div>
+              <button onClick={() => { setShowStudentsModal(false); setStudentModalCourse(null); }} className="p-2 hover:bg-gray-100 rounded-lg">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <select
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value ? Number(e.target.value) : "")}
+                  className="flex-1 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
+                >
+                  <option value="">স্টুডেন্ট নির্বাচন করুন</option>
+                  {availableUsers.map((user: any) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAddStudent}
+                  className="px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  disabled={!selectedStudentId}
+                >
+                  যোগ করুন
+                </button>
+              </div>
+
+              <div className="border border-gray-200 rounded-xl">
+                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                  <h4 className="font-semibold text-gray-900">ভর্তি হওয়া স্টুডেন্ট</h4>
+                  {loadingStudents && <span className="text-sm text-gray-500">লোড হচ্ছে...</span>}
+                </div>
+                <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                  {!loadingStudents && courseStudents.length === 0 && (
+                    <div className="px-4 py-3 text-sm text-gray-500">কোনো স্টুডেন্ট নেই</div>
+                  )}
+                  {courseStudents.map((student: any) => (
+                    <div key={student.id} className="px-4 py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{student.name}</p>
+                        <p className="text-xs text-gray-500">{student.email}</p>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveStudent(student.id)}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        সরান
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

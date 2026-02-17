@@ -191,6 +191,30 @@ class ApiService {
     return data;
   }
 
+  async refreshSession() {
+    const response = await fetch(`${API_BASE_URL}/session`, {
+      headers: this.getHeaders(),
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      this.logout();
+      return null;
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || "Failed to refresh session");
+    }
+
+    const user = await response.json();
+    localStorage.setItem("user", JSON.stringify(user));
+    if (user?.role) {
+      setCookie("user_role", user.role, 1);
+    }
+    this.ensureAuthCookies();
+    return user;
+  }
+
   logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -265,6 +289,33 @@ class ApiService {
       const error = await response.json();
       throw new Error(error.detail || "Failed to enroll user in course");
     }
+    return response.json();
+  }
+
+  async getCourseStudents(courseId: number) {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/students`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || "Failed to fetch course students");
+    }
+
+    return response.json();
+  }
+
+  async removeUserFromCourse(courseId: number, userId: number) {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/students/${userId}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || "Failed to remove user from course");
+    }
+
     return response.json();
   }
 
@@ -358,6 +409,23 @@ class ApiService {
       const error = await response.json();
       throw new Error(error.detail || "Failed to fetch exam");
     }
+    return response.json();
+  }
+
+  async checkExamAccess(examId: number) {
+    const response = await fetch(`${API_BASE_URL}/exams/${examId}/access-check`, {
+      headers: this.getHeaders(),
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      return { allowed: false, reason: "login_required" };
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || "Failed to check exam access");
+    }
+
     return response.json();
   }
 

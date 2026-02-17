@@ -629,6 +629,70 @@ async def get_exam_service(exam_id: int, user_id: Optional[int], db: AsyncSessio
     return exam
 
 
+async def check_exam_access_service(db: AsyncSession, exam_id: int, user_id: Optional[int]) -> dict:
+    """Determine whether a user can start an exam, based on pricing and enrollment."""
+    exam_result = await db.execute(
+        select(Exam)
+        .options(selectinload(Exam.course))
+        .where(Exam.id == exam_id)
+    )
+    exam = exam_result.scalars().first()
+
+    if not exam:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exam not found")
+
+    course = exam.course
+    course_free = course is None or bool(course.is_free)
+    exam_free = bool(exam.is_free) or exam.price is None or float(exam.price or 0) == 0
+
+    # If exam is detached from a course, allow access.
+    if exam.course_id is None:
+        return {
+            "allowed": True,
+            "reason": None,
+            "is_enrolled": False,
+            "exam_free": exam_free,
+            "course_free": course_free,
+            "course_id": exam.course_id,
+            "exam_id": exam.id,
+            "exam_price": float(exam.price or 0) if exam.price is not None else 0,
+            "course_price": None,
+        }
+
+    enrollment_required = not exam_free
+
+    is_enrolled = False
+    if user_id is not None and exam.course_id is not None:
+        enrollment = await db.execute(
+            select(UserCourseRelation).where(
+                UserCourseRelation.c.User_id == user_id,
+                UserCourseRelation.c.Course_id == exam.course_id,
+            )
+        )
+        is_enrolled = enrollment.scalar_one_or_none() is not None
+
+    allowed = (not enrollment_required) or is_enrolled
+
+    reason = None
+    if not allowed:
+        if user_id is None:
+            reason = "login_required"
+        elif enrollment_required and not is_enrolled:
+            reason = "not_enrolled"
+
+    return {
+        "allowed": allowed,
+        "reason": reason,
+        "is_enrolled": is_enrolled,
+        "exam_free": exam_free,
+        "course_free": course_free,
+        "course_id": exam.course_id,
+        "exam_id": exam.id,
+        "exam_price": float(exam.price or 0) if exam.price is not None else 0,
+        "course_price": float(course.price or 0) if course and course.price is not None else 0,
+    }
+
+
 async def update_exam_service(
     exam_id: int, 
     exam_update: ExamUpdateRequest, 

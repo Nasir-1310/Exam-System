@@ -25,9 +25,16 @@ export default function Navbar() {
   // Check authentication status
   useEffect(() => {
     setMounted(true);
-    apiService.ensureAuthCookies();
-    const currentUser = apiService.getCurrentUser();
-    setUser(currentUser);
+    (async () => {
+      apiService.ensureAuthCookies();
+      try {
+        const refreshed = await apiService.refreshSession();
+        setUser(refreshed || apiService.getCurrentUser());
+      } catch (err) {
+        console.warn("Session refresh failed", err);
+        setUser(apiService.getCurrentUser());
+      }
+    })();
   }, [pathname]);
 
   // Listen for auth changes

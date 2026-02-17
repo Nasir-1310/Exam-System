@@ -1,7 +1,17 @@
 # Backend/app/services/user_service.py
-from app.models import User, Course, UserCourseRelation
+from app.models import (
+    User,
+    Course,
+    UserCourseRelation,
+    Result,
+    ExamSession,
+    UserCourseAccess,
+    UserExamAccess,
+    Payment,
+    AdmissionRequest,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, delete
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from app.schemas import RegisterRequest
@@ -70,7 +80,6 @@ async def create_user(db: AsyncSession, payload: RegisterRequest):
 
 
 # ========== ADD THESE NEW FUNCTIONS BELOW ==========
-
 async def enroll_user_in_course(db: AsyncSession, user_id: int, course_id: int):
     """Enroll a user in a course"""
     # Check if user and course exist
@@ -150,6 +159,21 @@ async def delete_user(db: AsyncSession, user_id: int) -> bool:
         user = await get_user_by_id(db, user_id)
         if not user:
             return False
+
+        # Clean up dependents with NOT NULL FKs before deleting the user
+        results = await db.execute(select(Result).where(Result.user_id == user_id))
+        for result in results.scalars().all():
+            await db.delete(result)
+
+        sessions = await db.execute(select(ExamSession).where(ExamSession.user_id == user_id))
+        for session in sessions.scalars().all():
+            await db.delete(session)
+
+        await db.execute(delete(UserExamAccess).where(UserExamAccess.user_id == user_id))
+        await db.execute(delete(UserCourseAccess).where(UserCourseAccess.user_id == user_id))
+        await db.execute(delete(UserCourseRelation).where(UserCourseRelation.c.User_id == user_id))
+        await db.execute(delete(Payment).where(Payment.user_id == user_id))
+        await db.execute(delete(AdmissionRequest).where(AdmissionRequest.user_id == user_id))
         
         await db.delete(user)
         await db.commit()

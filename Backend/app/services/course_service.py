@@ -1,6 +1,6 @@
 # Backend/app/services/course_service.py
-from app.models import Course, UserCourseRelation, Exam
-from sqlalchemy import select, join, or_
+from app.models import Course, UserCourseRelation, Exam, User
+from sqlalchemy import select, join, or_, delete
 from app.schemas import (
     CourseCreate, 
     CourseUpdate
@@ -97,3 +97,43 @@ async def delete_course_service(course_id: int, db: AsyncSession) -> bool:
     course.is_deleted = True
     await db.commit()
     return True
+
+
+async def get_course_students_service(course_id: int, db: AsyncSession) -> list[User]:
+    """Return all users enrolled in a course."""
+    await get_course_service(course_id, db)
+    result = await db.execute(
+        select(User).join(
+            UserCourseRelation,
+            UserCourseRelation.c.User_id == User.id
+        ).where(UserCourseRelation.c.Course_id == course_id)
+    )
+    return result.scalars().all()
+
+
+async def remove_user_from_course_service(course_id: int, user_id: int, db: AsyncSession) -> dict:
+    """Remove a user's enrollment from a course."""
+    await get_course_service(course_id, db)
+
+    enrollment = await db.execute(
+        select(UserCourseRelation).where(
+            UserCourseRelation.c.Course_id == course_id,
+            UserCourseRelation.c.User_id == user_id,
+        )
+    )
+
+    if enrollment.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Enrollment not found for this user and course",
+        )
+
+    await db.execute(
+        delete(UserCourseRelation).where(
+            UserCourseRelation.c.Course_id == course_id,
+            UserCourseRelation.c.User_id == user_id,
+        )
+    )
+    await db.commit()
+
+    return {"message": f"User {user_id} removed from course {course_id}"}

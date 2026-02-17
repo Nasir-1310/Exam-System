@@ -22,7 +22,7 @@ function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: nu
         Previous
       </button>
       
-      {pages.map((page) => (
+      { pages.map((page) => (
         <button
           key={page}
           onClick={() => onPageChange(page)}
