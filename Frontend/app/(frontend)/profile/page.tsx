@@ -79,12 +79,12 @@ export default function ProfilePage() {
               </span>
             </div>
             <div className="flex gap-2">
-              <Button
+              {/* <Button
                 variant="secondary"
                 onClick={() => router.push("/my-courses")}
               >
                 আমার কোর্স
-              </Button>
+              </Button> */}
               <Button
                 variant="primary"
                 onClick={() => router.push("/exam")}
