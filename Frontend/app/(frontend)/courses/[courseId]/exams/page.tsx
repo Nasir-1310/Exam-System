@@ -228,12 +228,12 @@ function ExamCard({ exam, course, onStartExam }: any) {
           </div>
 
 
-          {!exam.is_free && exam.price && (
+          {/* {!exam.is_free && exam.price && (
             <div className="flex items-center justify-between text-sm pt-2 border-t">
               <span className="text-gray-600">Price</span>
               <span className="font-bold text-blue-600">৳{exam.price}</span>
             </div>
-          )}
+          )} */}
         </div>
 
         <div className="flex-1"> </div>
@@ -314,28 +314,10 @@ export default function CourseExamsPage() {
   );
 
   const handleStartExam = async (exam: Exam) => {
-    const isCourseFree = course?.is_free;
-    const isExamFree = exam?.is_free;
-
-    console.log("Starting exam:", {
-      examId: exam.id,
-      courseId,
-      isCourseFree,
-      isExamFree,
-      userLoggedIn: isLoggedIn,
-    });
-
-    // Completely free flow
-    if (isCourseFree && isExamFree) {
-      router.push(`/exam/${exam?.is_mcq ? "mcq" : "written"}/${exam.id}`);
-      return;
-    }
-
     try {
-      const access = await apiService.checkExamAccess(exam.id);
-      console.log("Access check result:", access);
+      const access = await apiService.checkExamAccess(exam.id, Number(courseId));
       if (access?.allowed) {
-        router.push(`/exam/${exam?.is_mcq ? "mcq" : "written"}/${exam.id}`);
+        router.push(`/exam/${exam.is_mcq ? "mcq" : "written"}/${exam.id}`);
         return;
       }
 

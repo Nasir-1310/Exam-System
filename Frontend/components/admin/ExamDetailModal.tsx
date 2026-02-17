@@ -13,6 +13,8 @@ import {
   createConfirmModal,
 } from "@/lib/modalHelpers";
 
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/api$/, "");
+
 interface Question {
   id: number;
   q_type: string;
@@ -69,8 +71,8 @@ const getImageSrc = (imageUrl: string): string => {
     return imageUrl;
   }
 
-  if (imageUrl.startsWith("/uploads/")) {
-    return `http://127.0.0.1:8000${imageUrl}`;
+    if (imageUrl.startsWith("/uploads/")) {
+      return `${API_ORIGIN}${imageUrl}`;
   }
 
   if (imageUrl.startsWith("/questions/") || imageUrl.startsWith("/")) {
@@ -369,7 +371,7 @@ export default function ExamDetailModal({
     const fetchCourses = async () => {
       try {
         const data = await apiService.getAllCourses();
-        setCourses(data || []);
+        setCourses(Array.isArray(data) ? data : data?.data || []);
       } catch (err) {
         console.error("Failed to load courses", err);
       }
@@ -1184,7 +1186,7 @@ export default function ExamDetailModal({
                 >
                   <option value="">কোনো কোর্স নির্বাচন করবেন না</option>
                   {courses.map((course) => (
-                    <option key={course.id} value={course.id}>
+                    <option key={course.id} value={String(course.id)}>
                       {course.title}
                     </option>
                   ))}

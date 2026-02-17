@@ -539,7 +539,7 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
             'is_active': exam.is_active,
             'allow_multiple_attempts': exam.allow_multiple_attempts,
             'show_detailed_results_after': show_detailed_results_after,
-            'price': exam.price,
+            # 'price': exam.price,
             'is_free': exam.is_free,
             'is_mcq': exam.is_mcq,
         }
@@ -692,7 +692,7 @@ async def check_exam_access_service(db: AsyncSession, exam_id: int, user_id: Opt
         "course_free": course_free,
         "course_id": exam.course_id,
         "exam_id": exam.id,
-        "exam_price": float(exam.price or 0) if exam.price is not None else 0,
+        # "exam_price": float(exam.price or 0) if exam.price is not None else 0,
         "course_price": float(course.price or 0) if course and course.price is not None else 0,
     }
 

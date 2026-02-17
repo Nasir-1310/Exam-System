@@ -1,3 +1,4 @@
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/api$/, "");
 // Frontend/components/exam/QuestionResult.tsx
 'use client';
 
@@ -61,7 +62,7 @@ export default function QuestionResult({ answerDetail, question, showDetails, is
     
     // If it's a relative path starting with /uploads/
     if (imageUrl.startsWith('/uploads/')) {
-      return `http://127.0.0.1:8000${imageUrl}`;
+        return `${API_ORIGIN}${imageUrl}`;
     }
     
     // Local path from public folder (/questions/...)
