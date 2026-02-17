@@ -9,6 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+ENV BACKEND_URL=https://alokbortikaedu.com
+
 EXPOSE 8000
 
 CMD ["sh", "entrypoint.sh"]
