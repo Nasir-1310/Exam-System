@@ -1,10 +1,11 @@
 'use client';
-const API_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/api$/, "");
-// Frontend/components/exam/QuestionResult.tsx
 
+// Frontend/components/exam/QuestionResult.tsx
 import { AnswerDetail, Question } from '@/lib/types';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import MathContentRenderer from '@/components/editor/MathContentRenderer'; // ADD THIS IMPORT
+
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/api$/, "");
 
 interface QuestionResultProps {
   answerDetail: AnswerDetail;

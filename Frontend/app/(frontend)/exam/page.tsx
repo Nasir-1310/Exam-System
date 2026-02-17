@@ -46,6 +46,7 @@ export default function ExamPage() {
         apiService.getAllCourses().catch(() => []),
       ]);
       setExams(examData);
+      console.log("Fetched exams:", examData);
       setCourses(courseData || []);
     } catch (err: any) {
       setError(err.message || "Failed to load exams");
