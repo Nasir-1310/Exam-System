@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.lib.db import get_db
 from app.services.user_service import *
 from app.utils.hashing import verify_password
-from app.utils.jwt import create_token, get_current_user
+from app.utils.jwt import create_token, get_current_user, _compute_expiry
 from app.schemas.user import UserResponse
 from app.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
 
@@ -39,10 +39,12 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
             role = user.role if user.role in ["ADMIN", "MODERATOR"] else "user"
 
         token = create_token(user_id=user.id, role=role)
-        expires_time = datetime.utcnow() + timedelta(
-            minutes=settings.TOKEN_EXPIRE_MINUTES,
-            hours=settings.TOKEN_EXPIRE_HOURS,
-            days=settings.TOKEN_EXPIRE_DAYS,
+        expires_time = _compute_expiry(
+            timedelta(
+                minutes=settings.TOKEN_EXPIRE_MINUTES,
+                hours=settings.TOKEN_EXPIRE_HOURS,
+                days=settings.TOKEN_EXPIRE_DAYS,
+            )
         )
 
         return TokenResponse(token=token, expires_in=expires_time.isoformat(), user=user)
@@ -74,10 +76,12 @@ async def login_docs(db: AsyncSession = Depends(get_db), username: str = Form(),
             role = user.role if user.role in ["ADMIN", "MODERATOR"] else "user"
         
         token = create_token(user_id=user.id, role=role)
-        expires_time = datetime.utcnow() + timedelta(
-            minutes=settings.TOKEN_EXPIRE_MINUTES,
-            hours=settings.TOKEN_EXPIRE_HOURS,
-            days=settings.TOKEN_EXPIRE_DAYS,
+        expires_time = _compute_expiry(
+            timedelta(
+                minutes=settings.TOKEN_EXPIRE_MINUTES,
+                hours=settings.TOKEN_EXPIRE_HOURS,
+                days=settings.TOKEN_EXPIRE_DAYS,
+            )
         )
         
         return {
