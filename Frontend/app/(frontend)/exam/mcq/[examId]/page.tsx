@@ -524,7 +524,7 @@ export default function MCQExamPage() {
 
             <div className="flex justify-center mt-8">
               <button
-                onClick={handleSubmitExam}
+                onClick={() => handleSubmitExam()}
                 className="px-8 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors text-lg shadow-lg"
                 disabled={loading}
               >
