@@ -1,5 +1,6 @@
-// src/app/courses/[courseId]/page.tsx
 'use client';
+
+// src/app/courses/[courseId]/page.tsx
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
@@ -76,7 +77,7 @@ const normalizeCourse = (payload: ApiCourse): Course => {
 };
 
 export default function CourseDetailsPage() {
-  const params = useParams();
+  const params = useParams<{ courseId: string }>();
   const courseId = params.courseId as string;
 
   const [course, setCourse] = useState<Course | null>(null);
