@@ -1,6 +1,6 @@
+'use client';
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/api$/, "");
 // Frontend/components/exam/QuestionResult.tsx
-'use client';
 
 import { AnswerDetail, Question } from '@/lib/types';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
