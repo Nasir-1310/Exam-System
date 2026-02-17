@@ -38,31 +38,29 @@ def _resolve_correct_option_index(question: Question) -> Optional[int]:
 
 
 async def get_all_exams_service(db: AsyncSession, user_id: Optional[int], course_id: Optional[int] = None) -> List[Exam]:
-    """Get all exams with questions filtered by user enrollment and optional course_id (for non-admins)"""
-    query = select(Exam).options(selectinload(Exam.questions))
+    """Get all exams; filter by enrollment for users and honor course_id for all callers."""
+    query = select(Exam).options(
+        selectinload(Exam.questions),
+        selectinload(Exam.course)
+    )
     priority_order = case((Exam.exam_type == "LIVE", 0), else_=1)
-    print(f"[DEBUG] get_all_exams_service - Initial query: {query}")
-    
+
     if user_id is not None:
-        # For regular users, filter by enrollment and active status
-        query = query.outerjoin(Course, Exam.course_id == Course.id).outerjoin(UserCourseRelation, UserCourseRelation.c.Course_id == Course.id)
-        query = query.where(UserCourseRelation.c.User_id == user_id)
-        
-        if course_id:
-            query = query.where(Exam.course_id == course_id)
-        
-        query = query.where(Exam.is_active == True)
-        query = query.order_by(priority_order, Exam.id.desc())
-        print(f"[DEBUG] get_all_exams_service - Query for user {user_id}: {query}")
-    else:
-        # For admins, no user-specific filters, retrieve all exams
-        # No joins on Course/UserCourseRelation needed here for admin view
-        query = query.order_by(priority_order, Exam.id.desc())
-        print(f"[DEBUG] get_all_exams_service - Query for admin (all exams): {query}")
+        # Filter by enrollment and active status for regular users
+        query = (
+            query.outerjoin(Course, Exam.course_id == Course.id)
+                 .outerjoin(UserCourseRelation, UserCourseRelation.c.Course_id == Course.id)
+                 .where(UserCourseRelation.c.User_id == user_id)
+                 .where(Exam.is_active == True)
+        )
+    
+    if course_id is not None:
+        query = query.where(Exam.course_id == course_id)
+
+    query = query.order_by(priority_order, Exam.id.desc())
 
     result = await db.execute(query)
     exams = result.scalars().unique().all()
-    print(f"[DEBUG] get_all_exams_service - Fetched {len(exams)} exams.")
     return exams
 
 
@@ -596,7 +594,10 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
 async def get_exam_service(exam_id: int, user_id: Optional[int], db: AsyncSession) -> Exam:
     """Get exam by ID with questions, ensuring user is enrolled in the associated course (if not admin)"""
     # Use outerjoin to include exams even if they don't have an associated course
-    query = select(Exam).options(selectinload(Exam.questions))
+    query = select(Exam).options(
+        selectinload(Exam.questions),
+        selectinload(Exam.course)
+    )
 
     # If it's a regular user, try to join with Course to check enrollment. 
     # For admins (user_id is None), we don't need to join with Course for filtering.
@@ -643,9 +644,10 @@ async def check_exam_access_service(db: AsyncSession, exam_id: int, user_id: Opt
 
     course = exam.course
     course_free = course is None or bool(course.is_free)
-    exam_free = bool(exam.is_free) or exam.price is None or float(exam.price or 0) == 0
+    exam_free = bool(exam.is_free)
 
     # If exam is detached from a course, allow access.
+    print(f"[DEBUG] check_exam_access_service - Exam Free: {exam_free}, Course Free: {course_free}, Course ID: {exam.course_id}")
     if exam.course_id is None:
         return {
             "allowed": True,
@@ -655,11 +657,8 @@ async def check_exam_access_service(db: AsyncSession, exam_id: int, user_id: Opt
             "course_free": course_free,
             "course_id": exam.course_id,
             "exam_id": exam.id,
-            "exam_price": float(exam.price or 0) if exam.price is not None else 0,
             "course_price": None,
         }
-
-    enrollment_required = not exam_free
 
     is_enrolled = False
     if user_id is not None and exam.course_id is not None:
@@ -670,16 +669,21 @@ async def check_exam_access_service(db: AsyncSession, exam_id: int, user_id: Opt
             )
         )
         is_enrolled = enrollment.scalar_one_or_none() is not None
+        if is_enrolled:
+            print(f"[DEBUG] User {user_id} is enrolled in course {exam.course.title}")
 
-    allowed = (not enrollment_required) or is_enrolled
+    print(f"[DEBUG] Enrollment check - Is Enrolled: {is_enrolled}")
+    allowed = exam_free or is_enrolled
+    print(f"[DEBUG] Allowed: {allowed}")
 
     reason = None
     if not allowed:
         if user_id is None:
             reason = "login_required"
-        elif enrollment_required and not is_enrolled:
+        elif not exam_free and not is_enrolled:
             reason = "not_enrolled"
 
+    print(f"[DEBUG] Access decision - Allowed: {allowed}")
     return {
         "allowed": allowed,
         "reason": reason,

@@ -26,6 +26,7 @@ export interface Exam {
   mark: number;
   minus_mark: number;
   course_id?: number;
+  course_title?: string | null;
   is_active: boolean;
   allow_multiple_attempts: boolean;
   show_detailed_results_after?: string;

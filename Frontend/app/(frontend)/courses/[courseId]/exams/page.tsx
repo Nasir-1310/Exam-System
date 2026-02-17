@@ -148,7 +148,7 @@ function ExamCard({ exam, course, onStartExam }: any) {
     });
   };
 
-  console.log("ExamCard Render:", exam);
+  // console.log("ExamCard Render:", exam);
 
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100">
@@ -247,7 +247,7 @@ function ExamCard({ exam, course, onStartExam }: any) {
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >
-          {exam.questions && exam.questions.length > 0
+          { exam.questions && exam.questions.length > 0
             ? exam.is_free
               ? "Start Free Exam"
               : "Start Premium Exam"
@@ -317,6 +317,14 @@ export default function CourseExamsPage() {
     const isCourseFree = course?.is_free;
     const isExamFree = exam?.is_free;
 
+    console.log("Starting exam:", {
+      examId: exam.id,
+      courseId,
+      isCourseFree,
+      isExamFree,
+      userLoggedIn: isLoggedIn,
+    });
+
     // Completely free flow
     if (isCourseFree && isExamFree) {
       router.push(`/exam/${exam?.is_mcq ? "mcq" : "written"}/${exam.id}`);
@@ -325,6 +333,7 @@ export default function CourseExamsPage() {
 
     try {
       const access = await apiService.checkExamAccess(exam.id);
+      console.log("Access check result:", access);
       if (access?.allowed) {
         router.push(`/exam/${exam?.is_mcq ? "mcq" : "written"}/${exam.id}`);
         return;

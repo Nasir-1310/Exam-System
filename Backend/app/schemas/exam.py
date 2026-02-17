@@ -1,5 +1,5 @@
 # Backend/app/schemas/exam.py
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, root_validator
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
@@ -86,6 +86,7 @@ class ExamResponse(BaseModel):
     mark: Decimal  # Changed to Decimal
     minus_mark: Decimal  # Changed to Decimal
     course_id: Optional[int] = None
+    course_title: Optional[str] = None
     is_mcq: Optional[bool] = True  # ADD THIS
     exam_type: str
     is_active: bool
@@ -97,6 +98,21 @@ class ExamResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+    @root_validator(pre=True)
+    def derive_course_title(cls, values):
+        # Pydantic may pass either a dict (from ORM serialization) or the ORM instance itself.
+        if isinstance(values, dict):
+            course_obj = values.get("course")
+            if course_obj and not values.get("course_title"):
+                values["course_title"] = getattr(course_obj, "title", None)
+            return values
+
+        course_obj = getattr(values, "course", None)
+        data = getattr(values, "__dict__", {}) or {}
+        if course_obj and not data.get("course_title"):
+            data["course_title"] = getattr(course_obj, "title", None)
+        return data
 
 
 class ExamUpdateRequest(BaseModel):

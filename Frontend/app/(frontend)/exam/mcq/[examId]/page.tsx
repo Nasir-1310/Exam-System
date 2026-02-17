@@ -119,10 +119,11 @@ export default function MCQExamPage() {
     });
   };
 
-  const handleSubmitExam = async () => {
+  const handleSubmitExam = async (options?: { skipConfirm?: boolean; reason?: "timeout" | "manual" }) => {
     if (!exam) return;
 
     const token = getBrowserToken();
+    const skipConfirm = options?.skipConfirm ?? false;
 
     // Guest case — should already have info, but double-check
     if (!token) {
@@ -135,29 +136,40 @@ export default function MCQExamPage() {
         setShowAnonModal(true);
         return;
       }
-      await submitAnonymousExam();
+      await submitAnonymousExam(skipConfirm);
       return;
     }
 
-    // Logged-in user confirmation
+    // Logged-in user confirmation (skip when auto-submit)
     const unansweredCount = exam.questions.length - answeredQuestions;
-    const confirmText =
-      unansweredCount > 0
-        ? `আপনি ${unansweredCount}টি প্রশ্নের উত্তর দেননি। এগিয়ে যেতে চান?`
-        : "আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?";
+    if (!skipConfirm) {
+      const confirmText =
+        unansweredCount > 0
+          ? `আপনি ${unansweredCount}টি প্রশ্নের উত্তর দেননি। এগিয়ে যেতে চান?`
+          : "আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?";
 
-    const result = await Swal.fire({
-      title: "নিশ্চিত করুন",
-      text: confirmText,
-      icon: unansweredCount > 0 ? "warning" : "question",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "হ্যাঁ, জমা দিন",
-      cancelButtonText: "বাতিল",
-    });
+      const result = await Swal.fire({
+        title: "নিশ্চিত করুন",
+        text: confirmText,
+        icon: unansweredCount > 0 ? "warning" : "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "হ্যাঁ, জমা দিন",
+        cancelButtonText: "বাতিল",
+      });
 
-    if (!result.isConfirmed) return;
+      if (!result.isConfirmed) return;
+    } else {
+      // Inform the user that time is up and we're submitting automatically.
+      Swal.fire({
+        icon: "info",
+        title: "সময় শেষ",
+        text: "সময় শেষ হয়ে গেছে, উত্তর জমা দিচ্ছি...",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    }
 
     try {
       setLoading(true);
@@ -204,7 +216,7 @@ export default function MCQExamPage() {
     }
   };
 
-  const submitAnonymousExam = async () => {
+  const submitAnonymousExam = async (skipConfirm = false) => {
     if (!exam) return;
 
     if (!anonForm.name.trim() || !anonForm.email.trim()) {
@@ -217,23 +229,25 @@ export default function MCQExamPage() {
     }
 
     const unansweredCount = exam.questions.length - answeredQuestions;
-    const confirmText =
-      unansweredCount > 0
-        ? `আপনি ${unansweredCount}টি প্রশ্নের উত্তর দেননি। এগিয়ে যেতে চান?`
-        : "আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?";
+    if (!skipConfirm) {
+      const confirmText =
+        unansweredCount > 0
+          ? `আপনি ${unansweredCount}টি প্রশ্নের উত্তর দেননি। এগিয়ে যেতে চান?`
+          : "আপনি কি নিশ্চিত যে পরীক্ষা জমা দিতে চান?";
 
-    const confirmation = await Swal.fire({
-      title: "নিশ্চিত করুন",
-      text: confirmText,
-      icon: unansweredCount > 0 ? "warning" : "question",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "হ্যাঁ, জমা দিন",
-      cancelButtonText: "বাতিল",
-    });
+      const confirmation = await Swal.fire({
+        title: "নিশ্চিত করুন",
+        text: confirmText,
+        icon: unansweredCount > 0 ? "warning" : "question",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "হ্যাঁ, জমা দিন",
+        cancelButtonText: "বাতিল",
+      });
 
-    if (!confirmation.isConfirmed) return;
+      if (!confirmation.isConfirmed) return;
+    }
 
     try {
       setAnonSubmitting(true);
@@ -458,7 +472,7 @@ export default function MCQExamPage() {
                 {exam.duration_minutes > 0 && (
                   <Timer
                     duration={exam.duration_minutes * 60}
-                    onTimeUp={handleSubmitExam}
+                    onTimeUp={() => handleSubmitExam({ skipConfirm: true, reason: "timeout" })}
                     ref={timerRef}
                   />
                 )}

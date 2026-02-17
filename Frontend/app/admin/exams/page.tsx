@@ -28,6 +28,10 @@ interface Exam {
   duration_minutes: number;
   mark: number;
   minus_mark: number;
+  is_free?: boolean;
+  price?: number | null;
+  allow_multiple_attempts?: boolean;
+  is_active?: boolean;
   questions?: Question[];
 }
 
@@ -68,6 +72,7 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       const data = await apiService.getAllExams();
+      console.log("Exams loaded:", data);
       setExams(data);
     } catch (error) {
       console.error('Failed to load exams:', error);
@@ -349,7 +354,19 @@ export default function AdminDashboard() {
                 <div key={exam.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 break-words">{exam.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{exam.title}</h3>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${exam.is_free ? 'bg-green-100 text-green-800' : 'bg-indigo-100 text-indigo-800'}`}
+                        >
+                          {exam.is_free ? 'ফ্রি' : `৳${Number(exam.price ?? 0)}`}
+                        </span>
+                        {exam.allow_multiple_attempts && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-yellow-100 text-yellow-800">
+                            বারবার দেয়া যাবে
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm sm:text-base text-gray-600 mb-3 break-words">{exam.description}</p>
                       <div className="flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500">
                         <span className="flex items-center">
