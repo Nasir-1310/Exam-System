@@ -86,6 +86,9 @@ export interface Exam {
   mark: number;
   minus_mark: number;
   course_id?: number;
+  course_title?: string | null;
+  is_free?: boolean;
+  price?: number | null;
   questions: Question[];
   is_active: boolean;
   allow_multiple_attempts: boolean;

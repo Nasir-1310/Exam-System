@@ -321,7 +321,7 @@ class ApiService {
 
   // Course APIs
   async getCourseById(courseId: string) {
-    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/`, {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
       headers: this.getHeaders(),
     });
 

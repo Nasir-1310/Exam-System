@@ -18,23 +18,33 @@ interface Exam {
   is_mcq: boolean;
 }
 
+interface Course {
+  id: number;
+  title: string;
+}
+
 export default function ExamPage() {
   const router = useRouter();
   const [exams, setExams] = useState<Exam[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "mcq" | "written">("all");
 
   useEffect(() => {
-    fetchExams();
+    fetchData();
   }, []);
 
-  const fetchExams = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiService.getAllExams();
-      setExams(data);
+      const [examData, courseData] = await Promise.all([
+        apiService.getAllExams(),
+        apiService.getAllCourses().catch(() => []),
+      ]);
+      setExams(examData);
+      setCourses(courseData || []);
     } catch (err: any) {
       setError(err.message || "Failed to load exams");
       console.error("Error fetching exams:", err);
@@ -82,6 +92,12 @@ export default function ExamPage() {
     return true;
   });
 
+  const courseTitle = (courseId: number | null) => {
+    if (!courseId) return "স্বতন্ত্র পরীক্ষা";
+    const course = courses.find((c) => c.id === courseId);
+    return course ? course.title : "কোর্স তথ্য নেই";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 pt-20">
@@ -105,7 +121,7 @@ export default function ExamPage() {
             <p className="text-red-800 font-medium mb-2">Error Loading Exams</p>
             <p className="text-red-600 text-sm mb-4">{error}</p>
             <button
-              onClick={fetchExams}
+              onClick={fetchData}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
               Try Again
@@ -241,6 +257,10 @@ export default function ExamPage() {
                   <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-indigo-600 transition-colors">
                     {exam.title}
                   </h3>
+
+                  <p className="text-sm text-gray-500 mb-2">
+                    কোর্স: {courseTitle(exam.course_id)}
+                  </p>
 
                   {/* Description */}
                   {exam.description && (

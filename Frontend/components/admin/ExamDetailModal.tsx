@@ -1,7 +1,7 @@
 // Frontend/components/admin/ExamDetailModal.tsx
 
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MathContentRenderer from '@/components/editor/MathContentRenderer';
 import apiService from "@/lib/api";
 import AddQuestionModal from "./AddQuestionModal";
@@ -39,7 +39,14 @@ interface Exam {
   duration_minutes: number;
   mark: number;
   minus_mark: number;
+  price?: number | null;
+  is_free?: boolean;
+  allow_multiple_attempts?: boolean;
+  is_active?: boolean;
+  is_mcq?: boolean;
   show_detailed_results_after?: string;
+  course_id?: number | null;
+  course_title?: string | null;
   questions?: Question[];
 }
 
@@ -114,9 +121,15 @@ export default function ExamDetailModal({
     duration_minutes: 60,
     mark: 100,
     minus_mark: 0.25,
+    price: "",
+    is_free: false,
+    allow_multiple_attempts: false,
+    course_id: "",
     show_detailed_results_after: "",
   });
   const [isUpdatingExam, setIsUpdatingExam] = useState(false);
+
+  const [courses, setCourses] = useState<{ id: number; title: string }[]>([]);
 
   // Modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -205,6 +218,10 @@ export default function ExamDetailModal({
       duration_minutes: exam.duration_minutes,
       mark: exam.mark,
       minus_mark: exam.minus_mark,
+      price: exam.price ? String(exam.price) : "",
+      is_free: Boolean(exam.is_free),
+      allow_multiple_attempts: Boolean(exam.allow_multiple_attempts),
+      course_id: exam.course_id ? String(exam.course_id) : "",
       show_detailed_results_after: exam.show_detailed_results_after
         ? new Date(exam.show_detailed_results_after).toISOString().slice(0, 16)
         : "",
@@ -301,6 +318,13 @@ export default function ExamDetailModal({
       setIsUpdatingExam(true);
       const updateData = {
         ...editExamForm,
+        price: editExamForm.is_free ? null : editExamForm.price ? parseFloat(editExamForm.price) : null,
+        is_free: editExamForm.is_free,
+        allow_multiple_attempts: editExamForm.allow_multiple_attempts,
+        course_id:
+          editExamForm.course_id && editExamForm.course_id.trim()
+            ? parseInt(editExamForm.course_id)
+            : null,
         show_detailed_results_after:
           editExamForm.show_detailed_results_after || null,
       };
@@ -340,6 +364,19 @@ export default function ExamDetailModal({
     setShowErrorModal(false);
   };
 
+  // Load courses once for the edit form
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const data = await apiService.getAllCourses();
+        setCourses(data || []);
+      } catch (err) {
+        console.error("Failed to load courses", err);
+      }
+    };
+    fetchCourses();
+  }, []);
+
   const handleImageUrlChange = (url: string, field: string) => {
     let displayUrl = url;
     if (url.includes("drive.google.com")) {
@@ -377,6 +414,23 @@ export default function ExamDetailModal({
                   <p className="text-sm text-gray-600 mt-1 break-words">
                     {exam.description}
                   </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${exam.is_free ? "bg-green-100 text-green-800" : "bg-indigo-100 text-indigo-800"}`}
+                    >
+                      {exam.is_free ? "ফ্রি" : `৳${Number(exam.price ?? 0)}`}
+                    </span>
+                    {exam.allow_multiple_attempts && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-100 text-yellow-800">
+                        একাধিকবার অংশগ্রহণ
+                      </span>
+                    )}
+                    {exam.is_active === false && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-200 text-gray-700">
+                        নিষ্ক্রিয়
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1037,7 +1091,7 @@ export default function ExamDetailModal({
       {/* Edit Exam Modal */}
       {showEditExamModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8 border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 my-8 border border-gray-100  max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -1112,6 +1166,93 @@ export default function ExamDetailModal({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
                   rows={3}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  কোর্স নির্বাচন (ঐচ্ছিক)
+                </label>
+                <select
+                  value={editExamForm.course_id}
+                  onChange={(e) =>
+                    setEditExamForm({
+                      ...editExamForm,
+                      course_id: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                >
+                  <option value="">কোনো কোর্স নির্বাচন করবেন না</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">এই পরীক্ষাটি কোন কোর্সের সাথে যুক্ত হবে</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="edit_is_free"
+                    checked={editExamForm.is_free}
+                    onChange={(e) =>
+                      setEditExamForm({
+                        ...editExamForm,
+                        is_free: e.target.checked,
+                        price: e.target.checked ? "" : editExamForm.price,
+                      })
+                    }
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="edit_is_free"
+                    className="ml-2 block text-sm text-gray-900"
+                  >
+                    ফ্রি পরীক্ষা
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    মূল্য (৳)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editExamForm.price}
+                    onChange={(e) =>
+                      setEditExamForm({ ...editExamForm, price: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900"
+                    placeholder="যেমন: 500"
+                    disabled={editExamForm.is_free}
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="edit_allow_multiple_attempts"
+                    checked={editExamForm.allow_multiple_attempts}
+                    onChange={(e) =>
+                      setEditExamForm({
+                        ...editExamForm,
+                        allow_multiple_attempts: e.target.checked,
+                      })
+                    }
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="edit_allow_multiple_attempts"
+                    className="ml-2 block text-sm text-gray-900"
+                  >
+                    একাধিকবার অংশগ্রহণের অনুমতি
+                  </label>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

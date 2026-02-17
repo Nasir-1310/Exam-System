@@ -62,6 +62,9 @@ function AuthPopup({ isOpen, onClose, type }: { isOpen: boolean; onClose: () => 
 // Course Card Component
 function CourseCard({ course, onExamClick, onLiveClassClick }: any) {
   const router = useRouter();
+  const placeholderSvg = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240" fill="none"><rect width="400" height="240" rx="12" fill="#0f172a"/><path d="M80 160L140 110L200 150L260 100L320 140V180H80V160Z" fill="#1d4ed8" opacity="0.35"/><rect x="110" y="70" width="180" height="16" rx="8" fill="#22c55e" opacity="0.6"/><rect x="110" y="100" width="140" height="12" rx="6" fill="#e5e7eb" opacity="0.8"/><text x="200" y="200" fill="#e5e7eb" font-size="16" font-family="Arial" font-weight="600" text-anchor="middle">No thumbnail</text></svg>'
+  )}`;
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 h-full flex flex-col cursor-pointer"
       onClick={(e)=>{
@@ -69,11 +72,15 @@ function CourseCard({ course, onExamClick, onLiveClassClick }: any) {
         router.push(`/courses/${course.id}`);
       }}>
       {/* Course Thumbnail */}
-      <div className="relative h-48 bg-gradient-to-br from-blue-500 to-purple-600">
+      <div className="relative h-48 bg-slate-900">
         <img
-          src={course.thumbnail || "/placeholder-course.jpg"}
+          src={course.thumbnail || placeholderSvg}
           alt={course.title}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            const target = e.currentTarget as HTMLImageElement;
+            target.src = placeholderSvg;
+          }}
         />
         {course.is_free && (
           <span className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">

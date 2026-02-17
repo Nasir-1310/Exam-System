@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Exam } from '@/lib/types';
 import { convertGoogleDriveUrl } from '@/lib/googleDriveUtils';
 import MathContentRenderer from '@/components/editor/MathContentRenderer'; // ADD THIS IMPORT
@@ -14,14 +13,16 @@ export default function ExamCard({
   isEnrolled = false,
 }: ExamCardProps) {
   const isLoggedIn = typeof window !== 'undefined' && (localStorage.getItem('token') || document.cookie.includes('token'));
-  const { id, title, description, duration_minutes, mark, is_premium, is_active, start_time, thumbnail_url } = exam;
+  const { id, title, description, duration_minutes, mark, is_premium, is_active, start_time, thumbnail_url, course_id, is_free, price } = exam;
 
-  const canTakeExam = isLoggedIn && isEnrolled && is_active && new Date(start_time) <= new Date();
+  const isFree = Boolean(is_free || !course_id);
+  const isPremium = Boolean(!isFree && (is_premium || Number(price ?? 0) > 0));
+  const canTakeExam = isLoggedIn && (isFree || isEnrolled) && is_active && new Date(start_time) <= new Date();
 
   let disabledMessage = "";
   if (!isLoggedIn) {
     disabledMessage = "Login Required";
-  } else if (!isEnrolled) {
+  } else if (!isFree && !isEnrolled) {
     disabledMessage = "Enroll in Course to Take Exam";
   } else if (!is_active) {
     disabledMessage = "Exam Not Yet Active";
@@ -34,60 +35,35 @@ export default function ExamCard({
   // Helper function to render exam thumbnail (local or Google Drive)
   // ============================================================================
   const renderThumbnail = () => {
-    if (!thumbnail_url) return null;
+    const placeholderSvg = `data:image/svg+xml,${encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240" fill="none"><rect width="400" height="240" rx="12" fill="#0f172a"/><path d="M80 160L140 110L200 150L260 100L320 140V180H80V160Z" fill="#1d4ed8" opacity="0.35"/><rect x="110" y="70" width="180" height="16" rx="8" fill="#22c55e" opacity="0.6"/><rect x="110" y="100" width="120" height="12" rx="6" fill="#e5e7eb" opacity="0.8"/><text x="200" y="200" fill="#e5e7eb" font-size="16" font-family="Arial" font-weight="600" text-anchor="middle">No thumbnail</text></svg>'
+    )}`;
 
-    // Check if it's a local uploaded image
-    if (thumbnail_url.startsWith('/exams/') || thumbnail_url.startsWith('/uploads/')) {
-      return (
-        <div className="w-full h-48 mb-4 overflow-hidden rounded-lg bg-gray-100">
-          <img
-            src={thumbnail_url}
-            alt={title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              target.style.display = 'none';
-              console.warn('Local exam thumbnail failed to load:', thumbnail_url);
-            }}
-            loading="lazy"
-          />
-        </div>
-      );
-    }
+    const fallback = (
+      <div className="w-full h-48 mb-4 overflow-hidden rounded-lg bg-slate-900 flex items-center justify-center">
+        <img src={placeholderSvg} alt="Placeholder" className="w-full h-full object-cover" />
+      </div>
+    );
 
-    // Check if it's a Google Drive URL
-    if (thumbnail_url.includes('drive.google.com')) {
-      return (
-        <div className="w-full h-48 mb-4 overflow-hidden rounded-lg bg-gray-100">
-          <img
-            src={convertGoogleDriveUrl(thumbnail_url)}
-            alt={title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.currentTarget as HTMLImageElement;
-              target.style.display = 'none';
-              console.warn('Google Drive exam thumbnail failed to load:', thumbnail_url);
-            }}
-            loading="lazy"
-          />
-        </div>
-      );
-    }
+    if (!thumbnail_url) return fallback;
 
-    // For other external URLs
+    const commonImgProps = {
+      alt: title,
+      className: 'w-full h-full object-cover',
+      loading: 'lazy' as const,
+      onError: (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const target = e.currentTarget as HTMLImageElement;
+        target.src = placeholderSvg;
+      },
+    };
+
+    const isLocal = thumbnail_url.startsWith('/exams/') || thumbnail_url.startsWith('/uploads/');
+    const isDrive = thumbnail_url.includes('drive.google.com');
+    const src = isLocal ? thumbnail_url : isDrive ? convertGoogleDriveUrl(thumbnail_url) : thumbnail_url;
+
     return (
-      <div className="w-full h-48 mb-4 overflow-hidden rounded-lg bg-gray-100">
-        <img
-          src={thumbnail_url}
-          alt={title}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            const target = e.currentTarget as HTMLImageElement;
-            target.style.display = 'none';
-            console.warn('External exam thumbnail failed to load:', thumbnail_url);
-          }}
-          loading="lazy"
-        />
+      <div className="w-full h-48 mb-4 overflow-hidden rounded-lg bg-slate-900">
+        <img src={src} {...commonImgProps} />
       </div>
     );
   };
@@ -115,10 +91,16 @@ export default function ExamCard({
               className="text-gray-600 text-sm mt-1"
             />
           </div>
-          {is_premium && (
-            <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium ml-2 flex-shrink-0">
-              Premium
+          {isFree ? (
+            <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium ml-2 flex-shrink-0">
+              Free
             </span>
+          ) : (
+            isPremium && (
+              <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium ml-2 flex-shrink-0">
+                Premium
+              </span>
+            )
           )}
         </div>
 

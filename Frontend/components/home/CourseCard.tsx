@@ -24,22 +24,34 @@ export default function CourseCard({ course }: { course: HomeCourse }) {
   const titleBangla = course.titleBangla || course.title;
   const duration = course.duration || '৬ মাস';
   const lectures = course.lectures ?? 0;
-  const thumbnail = course.thumbnail || '/courses.png';
+  const thumbnail = course.thumbnail?.trim();
   const priceLabel = isFree
     ? 'ফ্রি'
     : Number.isFinite(priceValue)
       ? `৳${priceValue.toLocaleString()}`
       : '৳—';
 
+  const placeholderSvg = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240" fill="none"><rect width="400" height="240" rx="12" fill="#0f172a"/><path d="M80 160L140 110L200 150L260 100L320 140V180H80V160Z" fill="#22c55e" opacity="0.4"/><rect x="110" y="70" width="180" height="16" rx="8" fill="#1d4ed8" opacity="0.6"/><rect x="110" y="100" width="120" height="12" rx="6" fill="#e5e7eb" opacity="0.8"/><text x="200" y="200" fill="#e5e7eb" font-size="16" font-family="Arial" font-weight="600" text-anchor="middle">No thumbnail</text></svg>'
+  )}`;
+
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 cursor-pointer group">
       {/* Course Image/Header */}
-      <div className="relative h-48">
-        <img
-          src={thumbnail}
-          alt={course.title}
-          className="w-full h-full object-cover"
-        />
+      <div className="relative h-48 bg-slate-900">
+        {thumbnail ? (
+          <img
+            src={thumbnail}
+            alt={course.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement;
+              target.src = placeholderSvg;
+            }}
+          />
+        ) : (
+          <img src={placeholderSvg} alt="Placeholder" className="w-full h-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent" />
         {/* Early Bird Badge */}
         {course.isEarlyBird && (

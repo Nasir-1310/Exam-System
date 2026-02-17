@@ -34,6 +34,10 @@ const initialForm: Course = {
   is_free: false,
 };
 
+const placeholderThumbnail = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240" fill="none"><rect width="400" height="240" rx="12" fill="#0f172a"/><path d="M80 160L140 110L200 150L260 100L320 140V180H80V160Z" fill="#22c55e" opacity="0.4"/><rect x="110" y="70" width="180" height="16" rx="8" fill="#1d4ed8" opacity="0.6"/><rect x="110" y="100" width="120" height="12" rx="6" fill="#e5e7eb" opacity="0.8"/><text x="200" y="200" fill="#e5e7eb" font-size="16" font-family="Arial" font-weight="600" text-anchor="middle">No thumbnail</text></svg>'
+)}`;
+
 export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +149,7 @@ export default function AdminCoursesPage() {
     const payload = {
       title: form.title,
       description: form.description || "",
-      thumbnail: form.thumbnail || "https://placehold.co/600x400",
+      thumbnail: form.thumbnail || placeholderThumbnail,
       price: form.is_free ? 0 : Number(form.price || 0),
       early_bird_price: form.is_free ? 0 : Number(form.early_bird_price || 0),
       early_bird_end_date: form.early_bird_end_date || today(),

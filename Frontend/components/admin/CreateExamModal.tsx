@@ -27,6 +27,8 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
     mark: 100,
     minus_mark: 0.25,
     course_id: '',
+    price: '',
+    is_free: false,
     allow_multiple_attempts: false,
     show_detailed_results_after: '',
   });
@@ -75,6 +77,11 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
         setLoading(false);
         return;
       }
+      if (!formData.is_free && formData.price && parseFloat(formData.price) < 0) {
+        setError('মূল্য ০ বা তার বেশি হতে হবে');
+        setLoading(false);
+        return;
+      }
 
       const submitData = {
         title: formData.title.trim(),
@@ -85,6 +92,8 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
         minus_mark: parseFloat(formData.minus_mark.toString()),
         course_id: formData.course_id && formData.course_id.trim() ? parseInt(formData.course_id) : null,
         is_active: true,
+        price: formData.is_free ? null : formData.price ? parseFloat(formData.price) : null,
+        is_free: formData.is_free,
         allow_multiple_attempts: formData.allow_multiple_attempts,
         show_detailed_results_after: formData.show_detailed_results_after ? `${formData.show_detailed_results_after}:00` : null,
         questions: [],
@@ -198,6 +207,36 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
                 ))}
               </select>
               <p className="text-xs text-gray-500 mt-1">এই পরীক্ষাটি কোন কোর্সের সাথে যুক্ত হবে</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="is_free"
+                  checked={formData.is_free}
+                  onChange={(e) => setFormData({ ...formData, is_free: e.target.checked, price: e.target.checked ? '' : formData.price })}
+                  className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label htmlFor="is_free" className="ml-2 block text-sm text-gray-900">
+                  ফ্রি পরীক্ষা
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">মুল্য (৳)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 text-sm sm:text-base"
+                  placeholder="যেমন: 500"
+                  disabled={formData.is_free}
+                />
+                <p className="text-xs text-gray-500 mt-1">ফ্রি হলে ফাঁকা রাখুন</p>
+              </div>
             </div>
 
             <div className="flex items-center">
