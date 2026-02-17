@@ -39,13 +39,18 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
             role = user.role if user.role in ["ADMIN", "MODERATOR"] else "user"
 
         token = create_token(user_id=user.id, role=role)
-        expires_time = datetime.utcnow() + timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
+        expires_time = datetime.utcnow() + timedelta(
+            minutes=settings.TOKEN_EXPIRE_MINUTES,
+            hours=settings.TOKEN_EXPIRE_HOURS,
+            days=settings.TOKEN_EXPIRE_DAYS,
+        )
 
         return TokenResponse(token=token, expires_in=expires_time.isoformat(), user=user)
     
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Login failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
@@ -69,7 +74,11 @@ async def login_docs(db: AsyncSession = Depends(get_db), username: str = Form(),
             role = user.role if user.role in ["ADMIN", "MODERATOR"] else "user"
         
         token = create_token(user_id=user.id, role=role)
-        expires_time = datetime.utcnow() + timedelta(minutes=settings.TOKEN_EXPIRE_MINUTES)
+        expires_time = datetime.utcnow() + timedelta(
+            minutes=settings.TOKEN_EXPIRE_MINUTES,
+            hours=settings.TOKEN_EXPIRE_HOURS,
+            days=settings.TOKEN_EXPIRE_DAYS,
+        )
         
         return {
             "access_token": token, 

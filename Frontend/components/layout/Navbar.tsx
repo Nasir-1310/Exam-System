@@ -25,6 +25,7 @@ export default function Navbar() {
   // Check authentication status
   useEffect(() => {
     setMounted(true);
+    apiService.ensureAuthCookies();
     const currentUser = apiService.getCurrentUser();
     setUser(currentUser);
   }, [pathname]);

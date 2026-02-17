@@ -42,6 +42,19 @@ export default function UsersPage() {
     }
   };
 
+  const handleDeleteUser = async (userId: number) => {
+    const confirm = window.confirm('ব্যবহারকারী মুছে ফেলবেন?');
+    if (!confirm) return;
+    try {
+      await apiService.deleteUser(userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      showSuccess('মুছে ফেলা হয়েছে', 'ব্যবহারকারী সফলভাবে মুছে ফেলা হয়েছে।');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      showError('মুছতে ব্যর্থ', err.message || 'ব্যবহারকারী মুছে ফেলতে সমস্যা হয়েছে।');
+    }
+  };
+
   const handleEnrollUser = async () => {
     if (!selectedUser || !selectedCourseId) return;
 
@@ -205,7 +218,7 @@ export default function UsersPage() {
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         user.role === 'ADMIN'
                           ? 'bg-purple-100 text-purple-800'
-                          : user.role === 'MODERATOR'
+                          : user.role === 'MODERATOR' 
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-green-100 text-green-800'
                       }`}>
@@ -216,17 +229,27 @@ export default function UsersPage() {
                       {user.active_mobile || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.role !== 'ADMIN' && (
-                        <button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setShowEnrollModal(true);
-                          }}
-                          className="text-indigo-600 hover:text-indigo-900 font-medium transition-colors"
-                        >
-                          কোর্সে নথিভুক্ত করুন
-                        </button>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {user.role !== 'ADMIN' && (
+                          <button
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowEnrollModal(true);
+                            }}
+                            className="text-indigo-600 hover:text-indigo-900 font-medium transition-colors"
+                          >
+                            কোর্সে নথিভুক্ত করুন
+                          </button>
+                        )}
+                        {user.role !== 'ADMIN' && (
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="text-red-600 hover:text-red-800 font-medium transition-colors"
+                          >
+                            মুছে ফেলুন
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

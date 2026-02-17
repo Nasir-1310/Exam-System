@@ -57,6 +57,28 @@ const deleteCookie = (name: string) => {
 };
 
 class ApiService {
+  ensureAuthCookies() {
+    if (typeof document === "undefined") return;
+    const hasTokenCookie = document.cookie.includes("token=");
+    const tokenLS = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (tokenLS && !hasTokenCookie) {
+      setCookie("token", tokenLS, 1);
+    }
+
+    const hasRoleCookie = document.cookie.includes("user_role=");
+    const userStr = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    if (!hasRoleCookie && userStr) {
+      try {
+        const parsed = JSON.parse(userStr);
+        if (parsed?.role) {
+          setCookie("user_role", parsed.role, 1);
+        }
+      } catch (err) {
+        console.warn("[api] unable to parse user from localStorage", err);
+      }
+    }
+  }
+
   private getHeaders(includeAuth = true): HeadersInit {
     const headers: HeadersInit = {
       "Content-Type": "application/json",
@@ -194,13 +216,29 @@ class ApiService {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch users");
+      const err = await response.json().catch(() => ({}));
+      const detail = err.detail || err.message || `${response.status} ${response.statusText}`;
+      throw new Error(`Failed to fetch users: ${detail}`);
     }
 
     const data = await response.json();
 
     // Handle both direct array and wrapped response formats
     return Array.isArray(data) ? data : data.data || data.users || [];
+  }
+
+  async deleteUser(userId: number) {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || "Failed to delete user");
+    }
+
+    return true;
   }
 
   async getAnonymousUsers() {
@@ -255,6 +293,50 @@ class ApiService {
     }
 
     return response.json();
+  }
+
+  async createCourse(courseData: any) {
+    const response = await fetch(`${API_BASE_URL}/courses/`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: JSON.stringify(courseData),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || "Failed to create course");
+    }
+
+    return response.json();
+  }
+
+  async updateCourse(courseId: number, courseData: any) {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: JSON.stringify(courseData),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || "Failed to update course");
+    }
+
+    return response.json();
+  }
+
+  async deleteCourse(courseId: number) {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || err.message || "Failed to delete course");
+    }
+
+    return true;
   }
   async getAllExams(courseId?: number) {
     let url = `${API_BASE_URL}/exams/`;

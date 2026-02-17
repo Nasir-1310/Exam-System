@@ -321,18 +321,22 @@ export default function CourseDetailsPage() {
               </div>
 
               <div className="space-y-3">
-                <Link
-                  href={`/courses/${courseId}/enroll`}
+                <button
+                  onClick={() => {
+                    alert("01600-268193 whatsapp নাম্বারে যোগাযোগ করে ভর্তি সম্পন্ন করুন। ");
+                  }}
                   className="w-full text-center bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold transition block"
                 >
                   Enroll Now
-                </Link>
-                <Link
-                  href={`/courses/${courseId}/live-classes`}
+                </button>
+                <button
+                  onClick={()=>{
+                    alert("Live classes not yet added.")
+                  }}
                   className="w-full text-center bg-indigo-50 text-indigo-700 hover:bg-indigo-100 py-3 rounded-lg font-semibold transition block"
                 >
                   লাইভ ক্লাস
-                </Link>
+                </button>
                 <Link
                   href={`/courses/${courseId}/exams`}
                   className="w-full text-center bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-3 rounded-lg font-semibold transition block"
