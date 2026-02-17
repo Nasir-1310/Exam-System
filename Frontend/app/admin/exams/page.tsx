@@ -1,4 +1,4 @@
-//Frontend/app/(admin)/exams/page.tsx
+// Frontend/app/(admin)/exams/page.tsx
 // Frontend/app/(admin)/dashboard/page.tsx
 
 'use client';

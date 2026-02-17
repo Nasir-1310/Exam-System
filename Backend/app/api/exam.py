@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Request
 from fastapi import Body
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from typing import Annotated
 import os
 import shutil
@@ -21,16 +22,19 @@ from app.services.exam_service import (
     submit_exam_service, 
     submit_exam_anonymous_service,
     get_detailed_exam_result_service,
-    get_detailed_exam_result_anonymous_service
+    get_detailed_exam_result_anonymous_service,
+    check_exam_access_service,
 )
 from app.services.google_drive_service import google_drive_service
 from app.schemas.exam import ExamCreateRequest, ExamResponse, ExamUpdateRequest, MCQBulkRequest, QuestionCreateRequest
 from app.schemas.result import ResultResponse, ResultDetailedResponse, AnswerCreate, AnonymousExamSubmitRequest
 
 from app.lib.db import get_db
-from app.utils.jwt import get_current_user
+from app.utils.jwt import get_current_user, decode_token
 from app.models.user import User
 from app.schemas.question import QuestionResponse
+from sqlalchemy.orm import selectinload
+from typing import Optional
 
 
 def require_role(allowed_roles: list[str]):
@@ -43,6 +47,35 @@ def require_role(allowed_roles: list[str]):
             )
         return current_user
     return check_role
+
+
+async def get_optional_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> Optional[User]:
+    """Return the authenticated user if a valid bearer token is present; otherwise None."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return None
+
+    token = auth_header.replace("Bearer", "").strip()
+    if not token:
+        return None
+
+    try:
+        payload = decode_token(token)
+        user_id = int(payload.get("sub")) if payload.get("sub") is not None else None
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
 
 
 router = APIRouter(
@@ -193,6 +226,17 @@ async def get_exam(
 ):
     """Get exam details - public endpoint"""
     return await get_exam_service(exam_id, user_id=None, db=db)
+
+
+@router.get("/{exam_id}/access-check")
+async def check_exam_access(
+    exam_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user)
+):
+    """Lightweight access check before starting an exam."""
+    user_id = current_user.id if current_user else None
+    return await check_exam_access_service(db, exam_id, user_id)
 
 
 # ✅ ADMIN/MODERATOR only

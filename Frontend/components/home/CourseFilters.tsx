@@ -1,23 +1,20 @@
 // src/components/home/CourseFilters.tsx
 'use client';
 
-type CourseCategory = 'all' | 'free' | 'regular-bcs' | 'subjective-bcs' | 'bank' | 'am-club' | 'medical' | 'primary';
+export type CourseCategory = 'all' | 'bcs' | 'bank' | 'primary' | 'free';
 
 interface CourseFiltersProps {
   selectedCategory: CourseCategory;
   onCategoryChange: (category: CourseCategory) => void;
 }
 
-// Course category buttons data
-const categories = [
+// Course category buttons data (aligned with /courses page filters)
+const categories: { id: CourseCategory; label: string }[] = [
   { id: 'all', label: 'সকল কোর্স' },
-  { id: 'free', label: 'ফ্রি কোর্স' },
-  { id: 'regular-bcs', label: 'রেগুলার বিসিএস কোর্স' },
-  { id: 'subjective-bcs', label: 'সাবজেক্টিভ বিসিএস কোর্স' },
+  { id: 'bcs', label: 'বিসিএস কোর্স' },
   { id: 'bank', label: 'ব্যাংক কোর্স' },
-  { id: 'am-club', label: '৬ এএম ক্লাব' },
-  { id: 'medical', label: 'মেডিকেল কোর্স' },
-  { id: 'primary', label: 'প্রাইমারি ও নন-ক্যাডার' },
+  { id: 'primary', label: 'প্রাইমারি কোর্স' },
+  { id: 'free', label: 'ফ্রি কোর্স' },
 ];
 
 export default function CourseFilters({ selectedCategory, onCategoryChange }: CourseFiltersProps) {

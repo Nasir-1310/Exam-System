@@ -7,9 +7,14 @@ export function middleware(request: NextRequest) {
   const userRole = request.cookies.get('user_role')?.value;
   const { pathname } = request.nextUrl;
 
+  // Debug: log auth context for protected paths
+  if (pathname.startsWith('/profile')) {
+    console.log('[middleware] path:', pathname, 'token:', token ? 'present' : 'missing', 'userRole:', userRole);
+  }
+
   // Public routes - authentication na lagbe
   const publicPaths = ['/', '/login', '/register', '/exam', '/courses',  '/results'];
-  const isPublicPath = publicPaths.includes(pathname);
+  // const isPublicPath = publicPaths.includes(pathname);
 
   // Protected routes - logged in user access korbe
   const protectedPaths = ['/profile',];

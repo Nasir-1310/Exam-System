@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Pagination from "@/components/Pagination";
+import apiService from "@/lib/api";
 
 interface Exam {
   id: number;
@@ -26,8 +27,6 @@ interface Course {
   is_free: boolean;
 }
 
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
 
 // Auth/Subscription Popup
 function ActionPopup({ isOpen, onClose, type, exam, course, onLogin, onRegister }: any) {
@@ -59,6 +58,16 @@ function ActionPopup({ isOpen, onClose, type, exam, course, onLogin, onRegister 
                 </p>
               </div>
             </>
+          ) : type === "enrollment" ? (
+            <>
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.93 5.93a10.001 10.001 0 0112.727 0M4.222 9.222a8 8 0 0111.314 0M3 12a6 6 0 0118 0" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">কোর্সে ভর্তি প্রয়োজন</h2>
+              <p className="text-gray-600 mb-4">এই পরীক্ষায় অংশ নিতে আগে কোর্সে ভর্তি হন।</p>
+            </>
           ) : (
             <>
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -89,6 +98,21 @@ function ActionPopup({ isOpen, onClose, type, exam, course, onLogin, onRegister 
               className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold"
             >
               Cancel
+            </button>
+          </div>
+        ) : type === "enrollment" ? (
+          <div className="flex gap-4">
+            <button
+              onClick={() => alert("Admission process coming soon.")}
+              className="flex-1 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold"
+            >
+              ভর্তি হন
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold"
+            >
+              বন্ধ করুন
             </button>
           </div>
         ) : (
@@ -250,25 +274,30 @@ export default function CourseExamsPage() {
   const examsPerPage = 8;
 
   useEffect(() => {
-    checkAuth();
-    fetchCourseAndExams();
+    (async () => {
+      await checkAuth();
+      await fetchCourseAndExams();
+    })();
   }, [courseId]);
 
-  const checkAuth = () => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
+  const checkAuth = async () => {
+    try {
+      const user = await apiService.refreshSession();
+      setIsLoggedIn(Boolean(user));
+    } catch (err) {
+      console.error("Session refresh failed", err);
+      setIsLoggedIn(false);
+    }
   };
 
   const fetchCourseAndExams = async () => {
+    if (!courseId) return;
     try {
       setLoading(true);
-      
-      const courseResponse = await fetch(`${BASE_URL}/courses/${courseId}`);
-      const courseData = await courseResponse.json();
+      const courseData = await apiService.getCourseById(String(courseId));
       setCourse(courseData);
 
-      const examsResponse = await fetch(`${BASE_URL}/courses/${courseId}/exams`);
-      const examsData = await examsResponse.json();
+      const examsData = await apiService.getAllExams(Number(courseId));
       setExams(Array.isArray(examsData) ? examsData : []);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -284,36 +313,38 @@ export default function CourseExamsPage() {
     currentPage * examsPerPage
   );
 
-  const handleStartExam = (exam: Exam) => {
-    // Logic:
-    // 1. Free course + Free exam = Anyone can take (no login)
-    // 2. Free course + Paid exam = Need subscription
-    // 3. Paid course + Free exam = Need login (registered users)
-    // 4. Paid course + Paid exam = Need subscription
+  const handleStartExam = async (exam: Exam) => {
+    const isCourseFree = course?.is_free;
+    const isExamFree = exam?.is_free;
 
-    const isCourseFrere = course?.is_free;
-    const isExamFree = exam.is_free;
-
-    // Case 1: Free course + Free exam = Direct access
-    if (isCourseFrere && isExamFree) {
+    // Completely free flow
+    if (isCourseFree && isExamFree) {
       router.push(`/exam/${exam?.is_mcq ? "mcq" : "written"}/${exam.id}`);
       return;
     }
 
-    // Case 2 & 4: Paid exam = Need subscription
-    if (!isExamFree) {
-      setPopup({ isOpen: true, type: "subscription", exam: exam ?? null });
-      return;
-    }
-
-    // Case 3: Paid course + Free exam = Need login
-    if (!isCourseFrere && isExamFree) {
-      if (!isLoggedIn) {
-        setPopup({ isOpen: true, type: "login", exam });
-      } else {
-        router.push(`/exam/${exam.is_mcq ? "mcq" : "written"}/${exam.id}`);
+    try {
+      const access = await apiService.checkExamAccess(exam.id);
+      if (access?.allowed) {
+        router.push(`/exam/${exam?.is_mcq ? "mcq" : "written"}/${exam.id}`);
+        return;
       }
-      return;
+
+      if (access?.reason === "login_required") {
+        setPopup({ isOpen: true, type: "login", exam });
+        return;
+      }
+
+      if (access?.reason === "not_enrolled") {
+        setPopup({ isOpen: true, type: "enrollment", exam });
+        return;
+      }
+
+      // Fallback to subscription prompt for paid exams
+      setPopup({ isOpen: true, type: "subscription", exam });
+    } catch (error) {
+      console.error("Access check failed", error);
+      setPopup({ isOpen: true, type: "subscription", exam });
     }
   };
 

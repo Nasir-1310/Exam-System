@@ -16,6 +16,7 @@ export default function AnonymousUsersPage() {
   const [users, setUsers] = useState<AnonymousUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +34,18 @@ export default function AnonymousUsersPage() {
 
     load();
   }, []);
+
+  const handleDelete = async (userId: number) => {
+    const ok = window.confirm('ব্যবহারকারী মুছে ফেলবেন?');
+    if (!ok) return;
+    try {
+      await apiService.deleteUser(userId);
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setMessage('ব্যবহারকারী মুছে ফেলা হয়েছে।');
+    } catch (err: any) {
+      setError(err?.message || 'মুছে ফেলতে সমস্যা হয়েছে।');
+    }
+  };
 
   const formatDate = (value?: string) => {
     if (!value) return '—';
@@ -67,6 +80,12 @@ export default function AnonymousUsersPage() {
     );
   }
 
+  const showMessage = message && (
+    <div className="mb-4 p-4 rounded-lg bg-green-50 text-green-800 border border-green-100">
+      {message}
+    </div>
+  );
+
   return (
     <div className="p-6 lg:p-8">
       {/* Header */}
@@ -74,6 +93,8 @@ export default function AnonymousUsersPage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">অ্যানোনিমাস ব্যবহারকারী</h1>
         <p className="text-gray-600">অ্যানোনিমাস অংশগ্রহণকারীদের তালিকা</p>
       </div>
+
+      {showMessage}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
@@ -109,6 +130,7 @@ export default function AnonymousUsersPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ইমেইল</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">মোবাইল</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">যোগ হওয়ার তারিখ</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">কাজ</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -139,6 +161,11 @@ export default function AnonymousUsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatDate(user.created_at)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                      <button onClick={() => handleDelete(user.id)} className="hover:text-red-800 font-medium">
+                        মুছে ফেলুন
+                      </button>
                     </td>
                   </tr>
                 ))

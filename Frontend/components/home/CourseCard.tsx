@@ -1,18 +1,46 @@
 // src/components/home/CourseCard.tsx
 'use client';
 
-import { Course } from '@/lib/types';
 import Link from 'next/link';
 
-interface CourseCardProps {
-  course: Course;
-}
+type HomeCourse = {
+  id: string | number;
+  title: string;
+  titleBangla?: string;
+  price?: number | string;
+  is_free?: boolean;
+  thumbnail?: string;
+  duration?: string;
+  lectures?: number;
+  isEarlyBird?: boolean;
+};
 
-export default function CourseCard({ course }: CourseCardProps) {
+export default function CourseCard({ course }: { course: HomeCourse }) {
+  const priceValue = typeof course.price === 'number'
+    ? course.price
+    : Number(course.price ?? 0);
+
+  const isFree = Boolean(course.is_free) || priceValue === 0;
+  const titleBangla = course.titleBangla || course.title;
+  const duration = course.duration || '৬ মাস';
+  const lectures = course.lectures ?? 0;
+  const thumbnail = course.thumbnail || '/courses.png';
+  const priceLabel = isFree
+    ? 'ফ্রি'
+    : Number.isFinite(priceValue)
+      ? `৳${priceValue.toLocaleString()}`
+      : '৳—';
+
   return (
     <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 cursor-pointer group">
       {/* Course Image/Header */}
-      <div className="relative h-48 bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700">
+      <div className="relative h-48">
+        <img
+          src={thumbnail}
+          alt={course.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent" />
         {/* Early Bird Badge */}
         {course.isEarlyBird && (
           <div className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
@@ -23,15 +51,11 @@ export default function CourseCard({ course }: CourseCardProps) {
         {/* Course Title in Image */}
         <div className="absolute inset-0 flex items-center justify-center text-white p-6">
           <div className="text-center">
-            <div className="text-sm mb-2 opacity-90">৫১ বিসিএস</div>
-            <h3 className="font-bold text-lg leading-tight">
-              {course.titleBangla}
+            <h3 className="font-bold text-lg leading-tight line-clamp-2">
+              {titleBangla}
             </h3>
           </div>
         </div>
-
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
       </div>
 
       {/* Course Content */}
@@ -47,23 +71,23 @@ export default function CourseCard({ course }: CourseCardProps) {
             <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>{course.duration || '৬ মাস'}</span>
+            <span>{duration}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            <span>{course.lectures || 120} lectures</span>
+            <span>{lectures} lectures</span>
           </div>
         </div>
 
         {/* Price and Button */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="text-2xl font-bold text-indigo-600">
-            {course.price === 0 ? (
-              <span className="text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-sm font-semibold">ফ্রি</span>
+            {isFree ? (
+              <span className="text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-sm font-semibold">{priceLabel}</span>
             ) : (
-              <span>৳{course.price.toLocaleString()}</span>
+              <span>{priceLabel}</span>
             )}
           </div>
 
