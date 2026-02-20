@@ -23,6 +23,7 @@ interface Question {
 interface Exam {
   id: number;
   title: string;
+  course_title?: string;
   description: string;
   start_time: string;
   duration_minutes: number;
@@ -367,7 +368,14 @@ export default function AdminDashboard() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm sm:text-base text-gray-600 mb-3 break-words">{exam.description}</p>
+                      <p className="text-sm sm:text-base text-gray-600 mb-1 break-words">{exam.description}</p>
+                      {  exam.course_title && (
+                        <div className='mb-2'>
+                          <span className="text-xs text-gray-700 break-words rounded-full bg-blue-100 border border-gray-200 px-2 py-1">
+                            {exam.course_title}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500">
                         <span className="flex items-center">
                           <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
