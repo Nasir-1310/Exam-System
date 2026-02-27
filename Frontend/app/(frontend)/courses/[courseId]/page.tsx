@@ -339,7 +339,7 @@ export default function CourseDetailsPage() {
                   লাইভ ক্লাস
                 </button>
                 <Link
-                  href={`/courses/${courseId}/exams`}
+                  href={`/exam`}
                   className="w-full text-center bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-3 rounded-lg font-semibold transition block"
                 >
                   এক্সাম
