@@ -57,6 +57,15 @@ const deleteCookie = (name: string) => {
 };
 
 class ApiService {
+  private persistAuth(token: string, user: { role?: string }) {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setCookie("token", token, 1);
+    if (user?.role) {
+      setCookie("user_role", user.role, 1);
+    }
+  }
+
   ensureAuthCookies() {
     if (typeof document === "undefined") return;
     const hasTokenCookie = document.cookie.includes("token=");
@@ -160,11 +169,7 @@ class ApiService {
     }
 
     const data = await response.json();
-
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    setCookie("token", data.token, 1);
-    setCookie("user_role", data.user.role, 1);
+    this.persistAuth(data.token, data.user);
 
     return data;
   }
@@ -183,12 +188,18 @@ class ApiService {
 
     const data = await response.json();
 
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    setCookie("token", data.token, 1);
-    setCookie("user_role", data.user.role, 1);
+    if (data?.token && data?.user) {
+      this.persistAuth(data.token, data.user);
+      return data;
+    }
 
-    return data;
+    // Fallback: when the backend returns only the user object, log in to obtain a token
+    const loginResponse = await this.login({
+      email: userData.email,
+      password: userData.password,
+    });
+
+    return loginResponse;
   }
 
   async refreshSession() {
