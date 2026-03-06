@@ -12,6 +12,8 @@ interface AddQuestionModalProps {
   exam: {
     id: number;
     title: string;
+    is_mcq?: boolean;
+    questions?: { id: number }[];
   };
   onClose: () => void;
   onSuccess: () => void;
@@ -22,10 +24,14 @@ export default function AddQuestionModal({
   onClose,
   onSuccess,
 }: AddQuestionModalProps) {
-  const [questionType, setQuestionType] = useState<"MCQ" | "WRITTEN">("MCQ");
+  const isWrittenExam = exam.is_mcq === false;
+  const [questionType, setQuestionType] = useState<"MCQ" | "WRITTEN">(
+    isWrittenExam ? "WRITTEN" : "MCQ"
+  );
   const [formData, setFormData] = useState({
     content: "",
     image_url: "",
+    second_image_url: "",
     description: "",
     option_a: "",
     option_b: "",
@@ -40,12 +46,14 @@ export default function AddQuestionModal({
   
   const [uploadingFiles, setUploadingFiles] = useState<{
     question: boolean;
+    question_second: boolean;
     option_a: boolean;
     option_b: boolean;
     option_c: boolean;
     option_d: boolean;
   }>({
     question: false,
+    question_second: false,
     option_a: false,
     option_b: false,
     option_c: false,
@@ -69,9 +77,14 @@ export default function AddQuestionModal({
 
   const handleFileUpload = async (
     file: File,
-    fieldName: "image_url" | "option_a_image_url" | "option_b_image_url" | "option_c_image_url" | "option_d_image_url"
+    fieldName: "image_url" | "second_image_url" | "option_a_image_url" | "option_b_image_url" | "option_c_image_url" | "option_d_image_url"
   ) => {
-    const uploadKey = fieldName === "image_url" ? "question" : fieldName.replace("_image_url", "") as keyof typeof uploadingFiles;
+    const uploadKey =
+      fieldName === "image_url"
+        ? "question"
+        : fieldName === "second_image_url"
+          ? "question_second"
+          : fieldName.replace("_image_url", "") as keyof typeof uploadingFiles;
     
     try {
       setUploadingFiles((prev) => ({ ...prev, [uploadKey]: true }));
@@ -134,6 +147,16 @@ export default function AddQuestionModal({
       return;
     }
 
+    if (isWrittenExam && (exam.questions?.length || 0) >= 1) {
+      setModalConfig(createErrorModal(
+        "সীমা অতিক্রম!",
+        "লিখিত পরীক্ষায় সর্বোচ্চ ১টি প্রশ্ন যোগ করা যাবে।",
+        "আরও প্রশ্ন যোগ করতে হলে আগে পুরনো প্রশ্ন মুছুন।"
+      ));
+      setShowErrorModal(true);
+      return;
+    }
+
     if (questionType === "MCQ") {
       const filledOptions = [
         formData.option_a,
@@ -160,6 +183,7 @@ export default function AddQuestionModal({
         q_type: questionType,
         content: formData.content, // Rich HTML content
         image_url: formData.image_url || null,
+        second_image_url: questionType === "WRITTEN" ? formData.second_image_url || null : null,
         description: formData.description || null, // Rich HTML content
         options:
           questionType === "MCQ"
@@ -190,6 +214,7 @@ export default function AddQuestionModal({
       setFormData({
         content: "",
         image_url: "",
+        second_image_url: "",
         description: "",
         option_a: "",
         option_b: "",
@@ -263,32 +288,38 @@ export default function AddQuestionModal({
               <label className="block  text-sm font-medium text-gray-700 mb-2">
                 প্রশ্নের ধরন
               </label>
-              <div className="flex gap-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="MCQ"
-                    checked={questionType === "MCQ"}
-                    onChange={(e) =>
-                      setQuestionType(e.target.value as "MCQ" | "WRITTEN")
-                    }
-                    className="mr-2"
-                  />
-                  <span className="text-gray-700">MCQ (বহুনির্বাচনী)</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="WRITTEN"
-                    checked={questionType === "WRITTEN"}
-                    onChange={(e) =>
-                      setQuestionType(e.target.value as "MCQ" | "WRITTEN")
-                    }
-                    className="mr-2"
-                  />
-                  <span className="text-gray-700">Written (লিখিত)</span>
-                </label>
-              </div>
+              {isWrittenExam ? (
+                <div className="px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium">
+                  Written (লিখিত) — এই পরীক্ষায় শুধুমাত্র লিখিত প্রশ্ন যোগ করা যাবে
+                </div>
+              ) : (
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="MCQ"
+                      checked={questionType === "MCQ"}
+                      onChange={(e) =>
+                        setQuestionType(e.target.value as "MCQ" | "WRITTEN")
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-gray-700">MCQ (বহুনির্বাচনী)</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="WRITTEN"
+                      checked={questionType === "WRITTEN"}
+                      onChange={(e) =>
+                        setQuestionType(e.target.value as "MCQ" | "WRITTEN")
+                      }
+                      className="mr-2"
+                    />
+                    <span className="text-gray-700">Written (লিখিত)</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Question Content - Rich Text Editor */}
@@ -367,6 +398,70 @@ export default function AddQuestionModal({
                 </div>
               )}
             </div>
+
+            {questionType === "WRITTEN" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  প্রশ্নের দ্বিতীয় ছবি (ঐচ্ছিক)
+                </label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="flex flex-col items-center justify-center w-full h-32 px-4 py-6 bg-white border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {uploadingFiles.question_second ? (
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        ) : (
+                          <>
+                            <svg className="w-8 h-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <p className="text-sm text-gray-500">
+                              <span className="font-semibold">PC থেকে আপলোড</span>
+                            </p>
+                            <p className="text-xs text-gray-400">JPG, PNG (max 5MB)</p>
+                          </>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file, "second_image_url");
+                        }}
+                        disabled={uploadingFiles.question_second}
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={formData.second_image_url}
+                      onChange={(e) => handleImageUrlChange(e.target.value, "second_image_url")}
+                      className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
+                      placeholder="অথবা Google Drive লিংক পেস্ট করুন"
+                    />
+                  </div>
+                </div>
+
+                {formData.second_image_url && (
+                  <div className="mt-3 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-600 mb-2">প্রিভিউ:</p>
+                    <div className="relative w-full h-48 bg-white rounded-lg overflow-hidden flex items-center justify-center border border-gray-200">
+                      <img
+                        src={formData.second_image_url}
+                        alt="Second Question Preview"
+                        className="max-w-full max-h-full object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Description/Explanation - Rich Text Editor */}
             <div>

@@ -113,10 +113,44 @@ async def add_question_to_exam_service(
     
     if not exam:
         raise HTTPException(status_code=404, detail="Exam not found")
+
+    if exam.is_mcq:
+        if question.q_type != "MCQ":
+            raise HTTPException(status_code=400, detail="MCQ exam accepts only MCQ questions")
+    else:
+        if question.q_type != "WRITTEN":
+            raise HTTPException(status_code=400, detail="Written exam accepts only WRITTEN questions")
+
+        existing_question_count = await db.scalar(
+            select(func.count(Question.id)).where(Question.exam_id == exam_id)
+        )
+        if (existing_question_count or 0) >= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Written exam can have maximum one question"
+            )
+
+        has_mcq_payload = any([
+            question.option_a,
+            question.option_b,
+            question.option_c,
+            question.option_d,
+            question.option_a_image_url,
+            question.option_b_image_url,
+            question.option_c_image_url,
+            question.option_d_image_url,
+            question.answer,
+        ])
+        if has_mcq_payload:
+            raise HTTPException(
+                status_code=400,
+                detail="Written question cannot contain MCQ options or answer"
+            )
     
     # Process and validate all URLs
     # Question image
     image_url = validate_and_convert_image_url(question.image_url, 'image_url')
+    second_image_url = validate_and_convert_image_url(question.second_image_url, 'second_image_url')
     
     # Option texts (remove any URLs)
     option_a = validate_and_convert_image_url(question.option_a, 'option_a')
@@ -136,16 +170,17 @@ async def add_question_to_exam_service(
         q_type=question.q_type,
         content=question.content,
         image_url=image_url,
+        second_image_url=second_image_url,
         description=question.description,
-        option_a=option_a,
-        option_b=option_b,
-        option_c=option_c,
-        option_d=option_d,
-        option_a_image_url=option_a_image_url,
-        option_b_image_url=option_b_image_url,
-        option_c_image_url=option_c_image_url,
-        option_d_image_url=option_d_image_url,
-        answer=question.answer
+        option_a=option_a if exam.is_mcq else None,
+        option_b=option_b if exam.is_mcq else None,
+        option_c=option_c if exam.is_mcq else None,
+        option_d=option_d if exam.is_mcq else None,
+        option_a_image_url=option_a_image_url if exam.is_mcq else None,
+        option_b_image_url=option_b_image_url if exam.is_mcq else None,
+        option_c_image_url=option_c_image_url if exam.is_mcq else None,
+        option_d_image_url=option_d_image_url if exam.is_mcq else None,
+        answer=question.answer if exam.is_mcq else None
     )
     
     db.add(question_obj)
@@ -185,9 +220,33 @@ async def update_question_service(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Question with id {question_id} not found in exam {exam_id}"
         )
+
+    if exam.is_mcq and question_data.q_type != "MCQ":
+        raise HTTPException(status_code=400, detail="MCQ exam question type must be MCQ")
+    if (not exam.is_mcq) and question_data.q_type != "WRITTEN":
+        raise HTTPException(status_code=400, detail="Written exam question type must be WRITTEN")
+
+    if not exam.is_mcq:
+        has_mcq_payload = any([
+            question_data.option_a,
+            question_data.option_b,
+            question_data.option_c,
+            question_data.option_d,
+            question_data.option_a_image_url,
+            question_data.option_b_image_url,
+            question_data.option_c_image_url,
+            question_data.option_d_image_url,
+            question_data.answer,
+        ])
+        if has_mcq_payload:
+            raise HTTPException(
+                status_code=400,
+                detail="Written question cannot contain MCQ options or answer"
+            )
     
     # Process and validate all URLs
     image_url = validate_and_convert_image_url(question_data.image_url, 'image_url')
+    second_image_url = validate_and_convert_image_url(question_data.second_image_url, 'second_image_url')
     
     # Option texts (remove any URLs)
     option_a = validate_and_convert_image_url(question_data.option_a, 'option_a')
@@ -205,16 +264,17 @@ async def update_question_service(
     question.q_type = question_data.q_type
     question.content = question_data.content
     question.image_url = image_url
+    question.second_image_url = second_image_url
     question.description = question_data.description
-    question.options = question_data.options
-    question.option_a = option_a
-    question.option_b = option_b
-    question.option_c = option_c
-    question.option_d = option_d
-    question.option_a_image_url = option_a_image_url
-    question.option_b_image_url = option_b_image_url
-    question.option_c_image_url = option_c_image_url
-    question.option_d_image_url = option_d_image_url
+    question.option_a = option_a if exam.is_mcq else None
+    question.option_b = option_b if exam.is_mcq else None
+    question.option_c = option_c if exam.is_mcq else None
+    question.option_d = option_d if exam.is_mcq else None
+    question.option_a_image_url = option_a_image_url if exam.is_mcq else None
+    question.option_b_image_url = option_b_image_url if exam.is_mcq else None
+    question.option_c_image_url = option_c_image_url if exam.is_mcq else None
+    question.option_d_image_url = option_d_image_url if exam.is_mcq else None
+    question.answer = question_data.answer if exam.is_mcq else None
     await db.commit()
     await db.refresh(question)
     
@@ -304,6 +364,7 @@ async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answ
         question_id = submitted_answer.question_id
         selected_option = submitted_answer.selected_option # For MCQ
         submitted_answer_text = submitted_answer.submitted_answer_text # For Written
+        uploaded_file = submitted_answer.uploaded_file
 
         question = next((q for q in exam.questions if q.id == question_id), None)
         if not question:
@@ -325,6 +386,11 @@ async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answ
                 is_correct = False
                 marks_for_question = -float(exam.minus_mark)
         else: # For written/other types, correctness and marks determined by admin later
+            if not submitted_answer_text and not uploaded_file:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Written question requires either submitted text or uploaded file link"
+                )
             is_correct = None # Cannot determine automatically
             marks_for_question = 0.0 # Will be graded later
 
@@ -341,6 +407,7 @@ async def submit_exam_service(db: AsyncSession, exam_id: int, user_id: int, answ
                 exam_id=exam_id,
                 selected_option=selected_option,
                 submitted_answer_text=submitted_answer_text,
+                uploaded_file=uploaded_file,
                 is_correct=is_correct,
                 correct_option_index=correct_option_index,
                 marks_obtained=marks_for_question
@@ -546,11 +613,29 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
         exam_obj = Exam(**exam_data)
         db.add(exam_obj)
         await db.flush()
+
+        if not exam_obj.is_mcq and len(exam.questions) > 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Written exam can have maximum one question"
+            )
         
         # Add questions with URL processing
         for question in exam.questions:
+            if exam_obj.is_mcq and question.q_type != "MCQ":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="MCQ exam accepts only MCQ questions"
+                )
+            if (not exam_obj.is_mcq) and question.q_type != "WRITTEN":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Written exam accepts only WRITTEN questions"
+                )
+
             # Process URLs
             image_url = validate_and_convert_image_url(question.image_url, 'image_url')
+            second_image_url = validate_and_convert_image_url(question.second_image_url, 'second_image_url')
             option_a = validate_and_convert_image_url(question.option_a, 'option_a')
             option_b = validate_and_convert_image_url(question.option_b, 'option_b')
             option_c = validate_and_convert_image_url(question.option_c, 'option_c')
@@ -565,16 +650,17 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
                 q_type=question.q_type,
                 content=question.content,
                 image_url=image_url,
+                second_image_url=second_image_url,
                 description=question.description,
-                option_a=option_a,
-                option_b=option_b,
-                option_c=option_c,
-                option_d=option_d,
-                option_a_image_url=option_a_image_url,
-                option_b_image_url=option_b_image_url,
-                option_c_image_url=option_c_image_url,
-                option_d_image_url=option_d_image_url,
-                answer=question.answer
+                option_a=option_a if exam_obj.is_mcq else None,
+                option_b=option_b if exam_obj.is_mcq else None,
+                option_c=option_c if exam_obj.is_mcq else None,
+                option_d=option_d if exam_obj.is_mcq else None,
+                option_a_image_url=option_a_image_url if exam_obj.is_mcq else None,
+                option_b_image_url=option_b_image_url if exam_obj.is_mcq else None,
+                option_c_image_url=option_c_image_url if exam_obj.is_mcq else None,
+                option_d_image_url=option_d_image_url if exam_obj.is_mcq else None,
+                answer=question.answer if exam_obj.is_mcq else None
             )
             db.add(question_obj)
         
@@ -582,6 +668,9 @@ async def create_exam_service(exam: ExamCreateRequest, db: AsyncSession) -> Exam
         await db.refresh(exam_obj)
         return exam_obj
         
+    except HTTPException:
+        await db.rollback()
+        raise
     except Exception as e:
         await db.rollback()
         print(f"Error creating exam: {e}")

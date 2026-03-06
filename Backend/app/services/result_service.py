@@ -12,7 +12,8 @@ async def get_all_results_service(db: AsyncSession, detailed: bool = False, curr
     """Get all results, optionally with detailed answers"""
     query = select(Result).options(
         selectinload(Result.user),
-        selectinload(Result.exam)
+        selectinload(Result.exam),
+        selectinload(Result.answers_details)
     )
     
     if current_user:
@@ -20,20 +21,34 @@ async def get_all_results_service(db: AsyncSession, detailed: bool = False, curr
     
     if detailed:
         query = query.options(
-            selectinload(Result.answers).selectinload(Answer.question)
+            selectinload(Result.answers_details).selectinload(Answer.question)
         )
     
     results = await db.execute(query)
-    return results.scalars().all()
+    result_list = results.scalars().all()
+
+    for result_obj in result_list:
+        if result_obj.exam and result_obj.exam.is_mcq is False:
+            file_answer = next(
+                (ans for ans in result_obj.answers_details if ans.uploaded_file),
+                None,
+            )
+            setattr(result_obj, "written_submission_file", file_answer.uploaded_file if file_answer else None)
+
+    return result_list
 
 
 async def get_result_service(result_id: int, db: AsyncSession, detailed: bool = False) -> Result:
     """Get result for an exam, optionally for a specific user and with detailed answers"""
-    query = select(Result).where(Result.id == result_id)
+    query = select(Result).where(Result.id == result_id).options(
+        selectinload(Result.user),
+        selectinload(Result.exam),
+        selectinload(Result.answers_details),
+    )
     
     if detailed:
         query = query.options(
-            selectinload(Result.answers).selectinload(Answer.question)
+            selectinload(Result.answers_details).selectinload(Answer.question)
         )
     
     result = await db.execute(query)
@@ -45,6 +60,13 @@ async def get_result_service(result_id: int, db: AsyncSession, detailed: bool = 
             detail="Result not found"
         )
         
+    if result_obj.exam and result_obj.exam.is_mcq is False:
+        file_answer = next(
+            (ans for ans in result_obj.answers_details if ans.uploaded_file),
+            None,
+        )
+        setattr(result_obj, "written_submission_file", file_answer.uploaded_file if file_answer else None)
+
     return result_obj
 
 

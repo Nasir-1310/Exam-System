@@ -15,14 +15,17 @@ interface Result {
   mark: number;
   submission_time: string;
   attempt_number: number;
+  written_submission_file?: string;
   user?: {
     id: number;
     name: string;
     email: string;
+    active_mobile?: string;
   };
   exam?: {
     id: number;
     title: string;
+    is_mcq?: boolean;
   };
 }
 
@@ -60,6 +63,8 @@ export default function ResultsPage() {
     if (!selectedExamId) return true;
     return r.exam_id === parseInt(selectedExamId);
   });
+
+  const displayedMcqResults = displayedResults.filter((r) => r.exam?.is_mcq !== false);
 
   const handleDeleteResult = async () => {
     if (!selectedResult) return;
@@ -111,6 +116,49 @@ export default function ResultsPage() {
     });
   };
 
+  const sanitizeFilename = (value: string) =>
+    value
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_\-\u0980-\u09FF]/g, '');
+
+  const downloadWrittenSubmission = async (result: Result) => {
+    if (!result.written_submission_file) return;
+
+    try {
+      const response = await fetch(result.written_submission_file);
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const mobile = sanitizeFilename(result.user?.active_mobile || 'unknown_mobile');
+      const studentName = sanitizeFilename(result.user?.name || `student_${result.user_id}`);
+      const examName = sanitizeFilename(result.exam?.title || `exam_${result.exam_id}`);
+      const urlPath = result.written_submission_file.split('?')[0];
+      const extension = (urlPath.split('.').pop() || 'pdf').toLowerCase();
+      const safeExtension = /^[a-z0-9]+$/.test(extension) ? extension : 'pdf';
+      const filename = `${mobile}_${studentName}_${examName}.${safeExtension}`;
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      showError(
+        'ডাউনলোড ব্যর্থ!',
+        err.message || 'ফাইল ডাউনলোড করা যায়নি।',
+        'ফাইল লিংকটি সঠিক কিনা যাচাই করুন।'
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -151,7 +199,7 @@ export default function ResultsPage() {
             <div>
               <p className="text-sm text-gray-600 mb-1">গড় স্কোর</p>
               <p className="text-3xl font-bold text-gray-900">
-                {displayedResults.length > 0 ? (displayedResults.reduce((sum, r) => sum + r.mark, 0) / displayedResults.length).toFixed(2) : '0.00'}
+                {displayedMcqResults.length > 0 ? (displayedMcqResults.reduce((sum, r) => sum + r.mark, 0) / displayedMcqResults.length).toFixed(2) : '0.00'}
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-xl">
@@ -167,7 +215,7 @@ export default function ResultsPage() {
             <div>
               <p className="text-sm text-gray-600 mb-1">সর্বোচ্চ স্কোর</p>
               <p className="text-3xl font-bold text-gray-900">
-                {displayedResults.length > 0 ? Math.max(...displayedResults.map(r => r.mark)).toFixed(2) : '0.00'}
+                {displayedMcqResults.length > 0 ? Math.max(...displayedMcqResults.map(r => r.mark)).toFixed(2) : '0.00'}
               </p>
             </div>
             <div className="p-3 bg-yellow-100 rounded-xl">
@@ -199,7 +247,7 @@ export default function ResultsPage() {
                   ব্যবহারকারী
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  স্কোর
+                  স্কোর/ফাইল
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   সঠিক/ভুল
@@ -239,14 +287,31 @@ export default function ResultsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {result.mark.toFixed(2)}
-                      </div>
+                      {result.exam?.is_mcq === false ? (
+                        result.written_submission_file ? (
+                          <button
+                            onClick={() => downloadWrittenSubmission(result)}
+                            className="text-blue-600 hover:text-blue-900 font-medium transition-colors"
+                          >
+                            ফাইল ডাউনলোড
+                          </button>
+                        ) : (
+                          <span className="text-sm text-gray-500">ফাইল নেই</span>
+                        )
+                      ) : (
+                        <div className="text-sm font-medium text-gray-900">
+                          {result.mark.toFixed(2)}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {result.correct_answers}/{result.correct_answers + result.incorrect_answers}
-                      </div>
+                      {result.exam?.is_mcq === false ? (
+                        <div className="text-sm text-gray-500">প্রযোজ্য নয়</div>
+                      ) : (
+                        <div className="text-sm text-gray-900">
+                          {result.correct_answers}/{result.correct_answers + result.incorrect_answers}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">

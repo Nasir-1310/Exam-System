@@ -4,6 +4,7 @@ export interface Question {
   q_type: 'MCQ' | 'WRITTEN';
   content: string;
   image_url?: string;
+  second_image_url?: string;
   description?: string;
   options?: string[];
   option_a?: string;
@@ -52,6 +53,7 @@ export interface QuestionCreate {
   q_type: 'MCQ' | 'WRITTEN';
   content: string;
   image_url?: string;
+  second_image_url?: string;
   description?: string;
   options?: string[];
   option_a?: string;

@@ -43,6 +43,8 @@ print(f"✅ Upload directory exists: {UPLOAD_DIR.exists()}")
 # Get configuration from settings
 ALLOWED_EXTENSIONS = set(settings.ALLOWED_IMAGE_EXTENSIONS)
 MAX_FILE_SIZE = settings.MAX_UPLOAD_SIZE
+ALLOWED_WRITTEN_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".gif"}
+MAX_WRITTEN_FILE_SIZE = 10 * 1024 * 1024
 # ============================================================================
 
 
@@ -120,6 +122,63 @@ def save_file_locally(file: UploadFile) -> str:
     print(f"✅ Image URL: {full_url}")
     
     return full_url
+
+
+def validate_written_file(file: UploadFile) -> None:
+    file_extension = Path(file.filename).suffix.lower()
+    if file_extension not in ALLOWED_WRITTEN_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF or image files are allowed"
+        )
+
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+
+    if file_size > MAX_WRITTEN_FILE_SIZE:
+        max_size_mb = MAX_WRITTEN_FILE_SIZE / (1024 * 1024)
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size: {max_size_mb:.1f}MB"
+        )
+
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Empty file. Please upload a valid file.")
+
+
+def save_written_file_locally(file: UploadFile) -> str:
+    answers_dir = BACKEND_ROOT / "uploads" / "written_answers"
+    answers_dir.mkdir(parents=True, exist_ok=True)
+
+    extension = Path(file.filename).suffix.lower() or ".pdf"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    unique_id = str(uuid.uuid4())[:8]
+    unique_filename = f"{timestamp}_{unique_id}{extension}"
+    file_path = answers_dir / unique_filename
+
+    try:
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    backend_url = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+    return f"{backend_url}/uploads/written_answers/{unique_filename}"
+
+
+@router.post("/written-answer-file")
+async def upload_written_answer_file(
+    file: UploadFile = File(..., description="Written answer file (PDF or image)")
+):
+    validate_written_file(file)
+    url = save_written_file_locally(file)
+    return {
+        "url": url,
+        "filename": file.filename,
+        "message": "Written answer file uploaded successfully"
+    }
+
 @router.post("/question-image")
 async def upload_question_image(
     file: UploadFile = File(..., description="Question image file")

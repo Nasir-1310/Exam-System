@@ -11,6 +11,7 @@ class QuestionResponse(BaseModel):
     q_type: str
     content: str
     image_url: Optional[str] = None
+    second_image_url: Optional[str] = None
     description: Optional[str] = None
     option_a: Optional[str] = None
     option_b: Optional[str] = None

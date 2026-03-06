@@ -8,6 +8,7 @@ class AnswerResponse(BaseModel):
     result_id: Optional[int] = None
     selected_option: Optional[int] = None
     submitted_answer_text: Optional[str] = None
+    uploaded_file: Optional[str] = None
     is_correct: Optional[bool] = None
     correct_option_index: Optional[int] = None
     marks_obtained: float
