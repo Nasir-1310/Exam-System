@@ -10,6 +10,7 @@ class Question(Base):
     q_type = Column(String(255), nullable=False)
     content = Column(Text, nullable=False)
     image_url = Column(Text)  # Optional image URL for the question (increased to Text for Google Drive URLs)
+    second_image_url = Column(Text)  # Optional second image URL for written questions
     description = Column(Text)  # Optional description/explanation for the answer
     option_a = Column(Text)
     option_a_img = Column(Text)

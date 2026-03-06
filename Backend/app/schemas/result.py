@@ -9,6 +9,7 @@ from app.schemas.exam import ExamResponse
 class ExamBasicResponse(BaseModel):
     id: int
     title: str
+    is_mcq: Optional[bool] = True
     
     class Config:
         from_attributes = True
@@ -18,6 +19,7 @@ class UserBasicResponse(BaseModel):
     id: int
     name: str
     email: str
+    active_mobile: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -27,6 +29,7 @@ class AnswerCreate(BaseModel):
     question_id: int
     selected_option: Optional[int] = None # Renamed from answer_idx
     submitted_answer_text: Optional[str] = None # For written answers
+    uploaded_file: Optional[str] = None # For written answers
 
 
 class AnswerResponse(BaseModel):
@@ -36,6 +39,7 @@ class AnswerResponse(BaseModel):
     result_id: Optional[int] = None
     selected_option: Optional[int] = None
     submitted_answer_text: Optional[str] = None
+    uploaded_file: Optional[str] = None
     is_correct: Optional[bool] = None
     correct_option_index: Optional[int] = None
     marks_obtained: float
@@ -62,6 +66,7 @@ class ResultResponse(BaseModel):
     mark: float
     submission_time: datetime
     attempt_number: int
+    written_submission_file: Optional[str] = None
     user: Optional[UserBasicResponse] = None
     exam: Optional[ExamBasicResponse] = None
     

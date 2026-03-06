@@ -33,6 +33,7 @@ interface Exam {
   price?: number | null;
   allow_multiple_attempts?: boolean;
   is_active?: boolean;
+  is_mcq?: boolean;
   questions?: Question[];
 }
 
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [modalConfig, setModalConfig] = useState<ReturnType<typeof createSuccessModal> | ReturnType<typeof createErrorModal> | ReturnType<typeof createConfirmModal> | null>(null);
-  const [examToDelete, setExamToDelete] = useState<number | null>(null);
+  const [, setExamToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     const currentUser = apiService.getCurrentUser();
@@ -87,11 +88,6 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    apiService.logout();
-    router.push('/login');
   };
 
   const handleDeleteExamClick = (examId: number) => {
@@ -411,23 +407,30 @@ export default function AdminDashboard() {
                         বিস্তারিত দেখুন
                       </button>
                       <div className="flex gap-2">
+                        {(() => {
+                          const writtenMaxReached = exam.is_mcq === false && (exam.questions?.length || 0) >= 1;
+                          return (
                         <button
                           onClick={() => {
                             setSelectedExam(exam);
                             setShowAddQuestionModal(true);
                           }}
+                          disabled={writtenMaxReached}
                           className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-[10px] sm:text-sm whitespace-nowrap"
                         >
-                          প্রশ্ন যোগ করুন
+                          {writtenMaxReached ? '১টি প্রশ্ন সম্পূর্ণ' : 'প্রশ্ন যোগ করুন'}
                         </button>
+                          );
+                        })()}
                         <button
                           onClick={() => {
                             setSelectedExam(exam);
                             setShowBulkUploadModal(true);
                           }}
+                          disabled={exam.is_mcq === false}
                           className="flex-1 lg:flex-none px-2 sm:px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-[10px] sm:text-sm whitespace-nowrap"
                         >
-                          বাল্ক আপলোড
+                          {exam.is_mcq === false ? 'Written এ নিষ্ক্রিয়' : 'বাল্ক আপলোড'}
                         </button>
                       </div>
                       <button

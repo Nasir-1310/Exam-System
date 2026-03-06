@@ -31,6 +31,7 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
     is_free: false,
     allow_multiple_attempts: false,
     show_detailed_results_after: '',
+    is_mcq: true,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -96,6 +97,7 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
         is_free: formData.is_free,
         allow_multiple_attempts: formData.allow_multiple_attempts,
         show_detailed_results_after: formData.show_detailed_results_after ? `${formData.show_detailed_results_after}:00` : null,
+        is_mcq: formData.is_mcq,
         questions: [],
       };
 
@@ -190,6 +192,37 @@ export default function CreateExamModal({ onClose, onSuccess }: CreateExamModalP
                 rows={3}
                 placeholder="পরীক্ষা সম্পর্কে বিস্তারিত"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">পরীক্ষার ধরন *</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, is_mcq: true })}
+                  className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
+                    formData.is_mcq
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  MCQ পরীক্ষা
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, is_mcq: false })}
+                  className={`px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${
+                    !formData.is_mcq
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  লিখিত পরীক্ষা
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                লিখিত পরীক্ষায় একটি প্রশ্ন, কোন অপশন নয়, এবং উত্তর PDF/লিংকে জমা হবে।
+              </p>
             </div>
 
             <div>

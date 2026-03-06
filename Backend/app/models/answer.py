@@ -12,6 +12,7 @@ class Answer(Base):
     result_id = Column(Integer, ForeignKey("Result.id"))
     selected_option = Column(Integer, nullable=True) # Renamed 'answer' to 'selected_option'
     submitted_answer_text = Column(Text, nullable=True) # For written exams
+    uploaded_file = Column(Text, nullable=True) # For written exams (pdf/image link)
     is_correct = Column(Boolean, nullable=True)
     correct_option_index = Column(Integer, nullable=True) # To store correct option for MCQs
     marks_obtained = Column(DECIMAL, nullable=False, default=0)

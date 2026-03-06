@@ -64,6 +64,7 @@ export interface Question {
   q_type: string;
   content: string;
   image_url?: string;
+  second_image_url?: string;
   description?: string;
   options?: string[];
   option_a?: string;
@@ -93,6 +94,7 @@ export interface Exam {
   is_active: boolean;
   allow_multiple_attempts: boolean;
   show_detailed_results_after?: string; // ISO string
+  is_mcq?: boolean;
   is_premium?: boolean; // This was in ExamCardProps, keep for compatibility
   thumbnail_url?: string;
 }
@@ -101,6 +103,7 @@ export interface Answer {
   question_id: number;
   selected_option?: number;
   submitted_answer_text?: string;
+  uploaded_file?: string;
 }
 
 export interface Result {
@@ -125,6 +128,7 @@ export interface AnswerDetail {
   result_id?: number;
   selected_option?: number;
   submitted_answer_text?: string;
+  uploaded_file?: string;
   is_correct?: boolean;
   correct_option_index?: number;
   marks_obtained: number;

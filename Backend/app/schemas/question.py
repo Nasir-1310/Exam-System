@@ -8,6 +8,7 @@ class QuestionBase(BaseModel):
     q_type: str = Field(..., description="Question type: MCQ or WRITTEN")
     content: str = Field(..., min_length=1, description="Question content (supports HTML)")
     image_url: Optional[str] = Field(None, description="Optional image URL for the question")
+    second_image_url: Optional[str] = Field(None, description="Optional second image URL for written question")
     description: Optional[str] = Field(None, description="Optional description/explanation (supports HTML)")
 
 
@@ -93,6 +94,7 @@ class BulkQuestionPreview(BaseModel):
     q_type: str
     content: str
     image_url: Optional[str] = None
+    second_image_url: Optional[str] = None
     description: Optional[str] = None
     options: Optional[List[str]] = None
     option_a: Optional[str] = None

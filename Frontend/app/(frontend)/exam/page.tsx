@@ -144,6 +144,9 @@ export default function ExamPage() {
     return true;
   });
 
+  const mcqCount = exams.filter((exam) => exam.is_mcq).length;
+  const writtenCount = exams.filter((exam) => !exam.is_mcq).length;
+
   const courseTitle = (courseId: number | null) => {
     if (!courseId) return "স্বতন্ত্র পরীক্ষা";
     const course = courses.find((c) => c.id === courseId);
@@ -238,7 +241,7 @@ export default function ExamPage() {
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               >
-                MCQ পরীক্ষা ({exams.length})
+                MCQ পরীক্ষা ({mcqCount})
               </button>
               <button
                 onClick={() => setFilter("written")}
@@ -248,7 +251,7 @@ export default function ExamPage() {
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               >
-                লিখিত পরীক্ষা (0)
+                লিখিত পরীক্ষা ({writtenCount})
               </button>
             </div>
           </div>
@@ -291,7 +294,7 @@ export default function ExamPage() {
                 <div className="relative h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
                   <div className="absolute top-4 left-4">
                     <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold rounded-full border border-white/30">
-                      MCQ পরীক্ষা
+                      {exam.is_mcq ? "MCQ পরীক্ষা" : "লিখিত পরীক্ষা"}
                     </span>
                   </div>
                   <div className="absolute bottom-4 right-4">

@@ -151,6 +151,35 @@ class ApiService {
     const data = await response.json();
     return data.url; // Returns public URL (e.g., /questions/abc123.jpg)
   }
+
+  async uploadWrittenAnswerFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("token") || getCookie("token")
+        : null;
+
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/upload/written-answer-file`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || "Failed to upload written answer file");
+    }
+
+    const data = await response.json();
+    return data.url;
+  }
   // ============================================================================
   // END IMAGE UPLOAD
   // ============================================================================

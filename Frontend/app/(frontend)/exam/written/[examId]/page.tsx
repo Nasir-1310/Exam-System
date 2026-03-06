@@ -1,232 +1,293 @@
-// app/exam/written/[examId]/page.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  getWrittenExamById,
-  getWrittenQuestionsByExamId,
-  WrittenAnswer,
-} from "@/lib/mockWrittenData";
+import Image from "next/image";
+import Swal from "sweetalert2";
 import Timer from "@/components/exam/Timer";
-import WrittenQuestionCard from "@/components/exam/WrittenQuestionCard";
+import apiService from "@/lib/api";
+import { convertGoogleDriveUrl } from "@/lib/googleDriveUtils";
+import MathContentRenderer from "@/components/editor/MathContentRenderer";
+
+interface WrittenQuestion {
+  id: number;
+  q_type: "WRITTEN" | "MCQ";
+  content: string;
+  image_url?: string;
+  second_image_url?: string;
+}
+
+interface WrittenExam {
+  id: number;
+  title: string;
+  description?: string;
+  duration_minutes: number;
+  is_active: boolean;
+  is_mcq?: boolean;
+  questions: WrittenQuestion[];
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api";
 
 export default function WrittenExamTakingPage() {
   const params = useParams();
   const router = useRouter();
-  const examId = parseInt(params.examId as string);
+  const examId = parseInt(params.examId as string, 10);
 
-  const exam = getWrittenExamById(examId);
-  const questions = getWrittenQuestionsByExamId(examId);
+  const [exam, setExam] = useState<WrittenExam | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState("");
+  const [manualPdfLink, setManualPdfLink] = useState("");
 
-  const [answers, setAnswers] = useState<{ [key: number]: WrittenAnswer }>({});
-  const [showSubmitWarning, setShowSubmitWarning] = useState(false);
+  useEffect(() => {
+    const loadExam = async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getExamById(examId);
 
-  if (!exam || questions.length === 0) {
+        if (!data?.is_active) {
+          Swal.fire({ icon: "error", title: "পরীক্ষা সক্রিয় নয়" });
+          router.push("/exam");
+          return;
+        }
+
+        if (data?.is_mcq !== false) {
+          Swal.fire({ icon: "error", title: "এটি লিখিত পরীক্ষা নয়" });
+          router.push("/exam");
+          return;
+        }
+
+        setExam(data);
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        Swal.fire({
+          icon: "error",
+          title: "ত্রুটি",
+          text: err?.message || "পরীক্ষা লোড করা যায়নি",
+        });
+        router.push("/exam");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!Number.isNaN(examId)) {
+      loadExam();
+    }
+  }, [examId, router]);
+
+  const getImageSrc = (imageUrl: string): string => {
+    if (!imageUrl) return "";
+
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      if (imageUrl.includes("drive.google.com")) {
+        return convertGoogleDriveUrl(imageUrl);
+      }
+      return imageUrl;
+    }
+
+    if (imageUrl.startsWith("/uploads/")) {
+      return `${API_BASE}${imageUrl}`;
+    }
+
+    if (imageUrl.includes("drive.google.com")) {
+      return convertGoogleDriveUrl(`https://${imageUrl}`);
+    }
+
+    return imageUrl;
+  };
+
+  const handleAnswerFileUpload = async (file: File) => {
+    if (!file) return;
+    const isPdf = file.type === "application/pdf";
+    const isImage = file.type.startsWith("image/");
+    if (!isPdf && !isImage) {
+      Swal.fire({ icon: "warning", title: "শুধু PDF বা ছবি আপলোড করুন" });
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      const url = await apiService.uploadWrittenAnswerFile(file);
+      setUploadedFileUrl(url);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      Swal.fire({
+        icon: "error",
+        title: "আপলোড ব্যর্থ",
+        text: err?.message || "ফাইল আপলোড করা যায়নি",
+      });
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const submitWrittenExam = async (autoSubmit = false) => {
+    if (!exam || exam.questions.length === 0) return;
+
+    const question = exam.questions[0];
+    const fileLink = manualPdfLink.trim() || uploadedFileUrl;
+
+    if (!fileLink) {
+      Swal.fire({
+        icon: "warning",
+        title: "উত্তর ফাইল প্রয়োজন",
+        text: "PDF বা ছবি আপলোড করুন, অথবা ফাইল লিংক দিন।",
+      });
+      return;
+    }
+
+    if (!autoSubmit) {
+      const confirm = await Swal.fire({
+        title: "পরীক্ষা জমা দেবেন?",
+        text: "জমা দেওয়ার পরে আর পরিবর্তন করা যাবে না।",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "হ্যাঁ, জমা দিন",
+        cancelButtonText: "বাতিল",
+      });
+
+      if (!confirm.isConfirmed) return;
+    }
+
+    try {
+      setSubmitting(true);
+      await apiService.submitExam(exam.id, [
+        {
+          question_id: question.id,
+          uploaded_file: fileLink,
+        },
+      ]);
+
+      await Swal.fire({
+        icon: "success",
+        title: "সফল",
+        text: "লিখিত পরীক্ষা সফলভাবে জমা হয়েছে",
+      });
+      router.push(`/exam/written/result/${exam.id}`);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      Swal.fire({
+        icon: "error",
+        title: "জমা ব্যর্থ",
+        text: err?.message || "পরীক্ষা জমা করা যায়নি",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-gray-600">Exam not found</p>
+        <p className="text-gray-600">লোড হচ্ছে...</p>
       </div>
     );
   }
 
-  const handleImagesUpload = (questionId: number, files: File[]) => {
-    const currentAnswer = answers[questionId] || {
-      question_id: questionId,
-      image_files: [],
-      image_urls: [],
-    };
-
-    // Add new files and URLs to existing ones
-    const newFiles = [...(currentAnswer.image_files || []), ...files];
-    const newUrls = [
-      ...(currentAnswer.image_urls || []),
-      ...files.map((file) => URL.createObjectURL(file)),
-    ];
-
-    setAnswers({
-      ...answers,
-      [questionId]: {
-        question_id: questionId,
-        image_files: newFiles,
-        image_urls: newUrls,
-      },
-    });
-  };
-
-  const submitExam = () => {
-    // Store submission in sessionStorage
-    sessionStorage.setItem(
-      `written_exam_result_${examId}`,
-      JSON.stringify({
-        exam_id: examId,
-        submitted_at: new Date().toISOString(),
-        answers: Object.values(answers).map((answer) => ({
-          question_id: answer.question_id,
-          image_urls: answer.image_urls,
-        })),
-        evaluation_status: "pending",
-      })
+  if (!exam || exam.questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">প্রশ্ন পাওয়া যায়নি</p>
+      </div>
     );
+  }
 
-    router.push(`/exam/written/result/${examId}`);
-  };
-
-  const handleSubmit = () => {
-    const answeredCount = Object.keys(answers).length;
-    if (answeredCount < questions.length) {
-      setShowSubmitWarning(true);
-      return;
-    }
-    submitExam();
-  };
-
-  const answeredCount = Object.keys(answers).length;
-
-  // Function to scroll to specific question
-  const scrollToQuestion = (index: number) => {
-    const element = document.getElementById(`written-question-${index}`);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  };
+  const question = exam.questions[0];
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 pt-20">
-      <div className="max-w-5xl mx-auto">
-        {/* Header - Sticky */}
+      <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow p-4 mb-6 sticky top-16 z-40">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-4">
             <div>
               <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
-              <p className="text-sm text-gray-600">
-                Total Questions: {questions.length}
-              </p>
+              <p className="text-sm text-gray-600">লিখিত পরীক্ষা (১টি প্রশ্ন)</p>
             </div>
-            <Timer
-              duration={exam.duration_minutes * 60}
-              onTimeUp={submitExam}
-            />
+            <Timer duration={exam.duration_minutes * 60} onTimeUp={() => submitWrittenExam(true)} />
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* All Questions Panel */}
-          <div className="lg:col-span-3 space-y-6">
-            {questions.map((question, index) => {
-              // Memoize uploaded images for each question
-              const uploadedImages = answers[question.id]?.image_urls || [];
-
-              return (
-                <div key={question.id} id={`written-question-${index}`}>
-                  <WrittenQuestionCard
-                    questionNumber={index + 1}
-                    content={question.content}
-                    marks={question.marks}
-                    onImagesUpload={(files) =>
-                      handleImagesUpload(question.id, files)
-                    }
-                    uploadedImages={uploadedImages}
-                  />
-                </div>
-              );
-            })}
-
-            {/* Submit Button */}
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={handleSubmit}
-                className="px-8 py-3 bg-green-600 text-white font-medium text-lg rounded-lg hover:bg-green-700 shadow-lg"
-              >
-                Submit Exam
-              </button>
+        <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">প্রশ্ন</h2>
+            <div className="text-gray-800 leading-relaxed">
+              <MathContentRenderer content={question.content} />
             </div>
           </div>
 
-          {/* Question Navigator */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4 sticky top-44">
-              <h3 className="font-semibold text-gray-900 mb-4">Questions</h3>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {questions.map((q, index) => {
-                  const answer = answers[q.id];
-                  const imageCount = answer?.image_urls?.length || 0;
-
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => scrollToQuestion(index)}
-                      className={`relative h-12 rounded-lg text-sm font-medium transition-colors ${
-                        imageCount > 0
-                          ? "bg-green-500 text-white hover:bg-green-600"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                      }`}
-                    >
-                      <div>{index + 1}</div>
-                      {imageCount > 0 && (
-                        <div className="absolute -top-1 -right-1 bg-yellow-400 text-gray-900 text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                          {imageCount}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-500 rounded"></div>
-                  <span className="text-gray-700">
-                    Answered ({answeredCount})
-                  </span>
+          {(question.image_url || question.second_image_url) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {question.image_url && (
+                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <Image
+                    src={getImageSrc(question.image_url)}
+                    alt="Question image 1"
+                    width={1200}
+                    height={800}
+                    className="w-full max-h-80 object-contain rounded"
+                    unoptimized
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                  <span className="text-gray-700">
-                    Not Answered ({questions.length - answeredCount})
-                  </span>
+              )}
+              {question.second_image_url && (
+                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <Image
+                    src={getImageSrc(question.second_image_url)}
+                    alt="Question image 2"
+                    width={1200}
+                    height={800}
+                    className="w-full max-h-80 object-contain rounded"
+                    unoptimized
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-400 rounded-full"></div>
-                  <span className="text-gray-700">Image count</span>
-                </div>
-              </div>
+              )}
             </div>
+          )}
+
+          <div className="border-t pt-6 space-y-4">
+            <h3 className="font-semibold text-gray-900">আপনার উত্তর জমা দিন</h3>
+
+            <div>
+              <label className="block text-sm text-gray-700 mb-2">ফাইল আপলোড (PDF বা ছবি)</label>
+              <input
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleAnswerFileUpload(file);
+                }}
+                className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+              />
+              {uploadingFile && <p className="text-sm text-blue-600 mt-2">ফাইল আপলোড হচ্ছে...</p>}
+              {uploadedFileUrl && (
+                <p className="text-sm text-green-600 mt-2 break-all">আপলোড হয়েছে: {uploadedFileUrl}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 mb-2">অথবা PDF/ছবির লিংক দিন</label>
+              <input
+                type="url"
+                value={manualPdfLink}
+                onChange={(e) => setManualPdfLink(e.target.value)}
+                placeholder="https://.../answer.pdf অথবা .jpg/.png"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+              />
+            </div>
+
+            <button
+              onClick={() => submitWrittenExam(false)}
+              disabled={submitting || uploadingFile}
+              className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+            >
+              {submitting ? "জমা হচ্ছে..." : "পরীক্ষা জমা দিন"}
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Submit Warning Modal */}
-      {showSubmitWarning && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Are you sure?
-            </h3>
-            <p className="text-gray-600 mb-4">
-              You have {questions.length - answeredCount} unanswered questions.
-              Do you want to submit anyway?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowSubmitWarning(false)}
-                className="flex-1 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowSubmitWarning(false);
-                  submitExam();
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
